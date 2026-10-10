@@ -65,6 +65,7 @@ Node.js LTS if you want this tool to be independent of Codex.
 | `--min-mb <n>` | ignore records below this many MB | `1` |
 | `--highlight-mb <n>` | highlight records above this many MB | `50` |
 | `--mb-base <n>` | bytes per MB for rows shown as `B` (`1048576` binary / `1000000` decimal) | `1048576` |
+| `--project-until <date>` | project the cumulative usage line up to this date (`YYYY-MM-DD`) | `2027-10-06` |
 | `--lang <zh\|en>` | default report language and console language | `zh` |
 | `--redact` | replace phone numbers with `Account 1`, `Account 2`, ... (owner names stay) | off |
 | `--mask-numbers` | show phone numbers as `040****123` instead of `Account 1` (owner names stay) | off |
@@ -150,6 +151,9 @@ the rounding of the displayed values.
 - Language switch (Chinese / English, Chinese by default)
 - One card per phone number: total usage after cleanup, high-usage count / total / share, ignored count, largest and average record
 - Daily usage bar chart (a flag marks days with a single record above 50 MB)
+- Cumulative usage line chart with the current average rate projected forward to
+  `--project-until` (the plan expiry by default), so you can see where the usage
+  is heading
 - Usage detail table (newest first): date, time, type, country, usage, distribution, share, status
 - Daily summary table: records, usage, share, largest record, high-usage count
 - Cleanup rules and data quality: thresholds, footer cross-check, excluded call/SMS counts

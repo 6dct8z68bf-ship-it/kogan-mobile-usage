@@ -41,6 +41,7 @@ const USAGE = {
       --min-mb <n>         小於此 MB 數忽略（預設 1）
       --highlight-mb <n>   大於此 MB 數 highlight（預設 50）
       --mb-base <n>        位元組(B)換算基準：1 MB = 多少 bytes（預設 1048576）
+      --project-until <d>  累積用量投射的目標日期 YYYY-MM-DD（預設 2027-10-06）
       --lang <zh|en>       輸出語言（預設 zh）
       --redact             以 Account 1..N 取代門號（保留主人姓名，公開報告用）
       --mask-numbers       門號顯示成 040****123（保留可辨識性，公開報告用）
@@ -74,6 +75,7 @@ Options:
       --min-mb <n>         ignore records below this many MB (default 1)
       --highlight-mb <n>   highlight records above this many MB (default 50)
       --mb-base <n>        bytes per MB for byte-denominated rows (default 1048576)
+      --project-until <d>  project cumulative usage up to this date (default 2027-10-06)
       --lang <zh|en>       output language (default zh)
       --redact             replace phone numbers with Account 1..N (owner names stay)
       --mask-numbers       show phone numbers as 040****123 (owner names stay)

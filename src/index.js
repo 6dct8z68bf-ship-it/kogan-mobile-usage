@@ -31,6 +31,7 @@ const VALUE_FLAGS = new Set([
   'min-mb',
   'highlight-mb',
   'mb-base',
+  'project-until',
   'lang',
   'out',
   'save-raw',
@@ -222,6 +223,7 @@ function analyseParsed(parsed, settings, scope) {
     mbBase: settings.mbBase,
     minMb: settings.minMb,
     highlightMb: settings.highlightMb,
+    projectUntil: settings.projectUntil,
   });
   analysis.scope = scope;
   analysis.months = settings.months;
@@ -306,6 +308,7 @@ async function main() {
         '--highlight-mb'
       ),
       mbBase: toPositiveNumber(pick(options.values['mb-base'], env.KOGAN_MB_BASE, 1048576), 1048576, '--mb-base'),
+      projectUntil: pick(options.values['project-until'], env.KOGAN_PROJECT_UNTIL, '2027-10-06'),
     };
   } catch (err) {
     if (!(err instanceof CliError)) throw err;
