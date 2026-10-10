@@ -1,0 +1,7 @@
+# Default owners for everything in this repository.
+#
+# GitHub reads CODEOWNERS from .github/, the repository root or docs/.
+# For the entry to take effect the account needs write access to this
+# repository, and code owner review has to be enabled in the branch protection
+# rules of the branch you want to protect.
+* @henryliu18
