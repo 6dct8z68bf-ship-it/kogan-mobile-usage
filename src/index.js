@@ -55,6 +55,7 @@ function parseArgs(argv) {
     saveRaw: true,
     redact: false,
     hideNames: false,
+    maskNumbers: false,
   };
   const positional = [];
 
@@ -83,6 +84,10 @@ function parseArgs(argv) {
     }
     if (token === '--hide-names') {
       options.hideNames = true;
+      continue;
+    }
+    if (token === '--mask-numbers') {
+      options.maskNumbers = true;
       continue;
     }
     if (token === '-f') {
@@ -256,7 +261,7 @@ function makeScopeFactory() {
  * visible label was replaced.
  */
 function accountScope(settings, position, source, uniqueScope) {
-  if (settings.redact) return `account-${position}`;
+  if (settings.redact || settings.maskNumbers) return `account-${position}`;
   return uniqueScope(safeSlug(source) || `account-${position}`);
 }
 
@@ -291,6 +296,7 @@ async function main() {
       lang,
       redact: options.redact || isTruthy(env.KOGAN_REDACT),
       hideNames: options.hideNames || isTruthy(env.KOGAN_HIDE_NAMES),
+      maskNumbers: options.maskNumbers || isTruthy(env.KOGAN_MASK_NUMBERS),
       months: normaliseMonths(pick(options.values.months, env.KOGAN_MONTHS, 1), 1),
       type: normaliseType(pick(options.values.type, env.KOGAN_USAGE_TYPE, 'Data'), 'Data'),
       minMb: toPositiveNumber(pick(options.values['min-mb'], env.KOGAN_MIN_MB, 1), 1, '--min-mb'),
@@ -434,6 +440,7 @@ async function main() {
     lang,
     redact: settings.redact,
     hideNames: settings.hideNames,
+    maskNumbers: settings.maskNumbers,
     settings,
     sourceLabel: 'accounts.koganmobile.com.au/service/usage',
   });

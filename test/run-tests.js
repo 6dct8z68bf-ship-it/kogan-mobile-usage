@@ -10,6 +10,7 @@ const { parseUsageHtml } = require('../src/parse-usage');
 const { cleanUsage } = require('../src/clean-usage');
 const { renderReport } = require('../src/render-report');
 const { parseEnvFile, collectAccounts } = require('../src/env');
+const { maskPhoneNumber } = require('../src/mask');
 
 const ROOT = path.join(__dirname, '..');
 const FIXTURE = path.join(ROOT, 'fixtures', 'usage-history-sample.html');
@@ -75,6 +76,15 @@ test('empty and unknown values return null', () => {
 test('toMb conversion', () => {
   approx(toMb(1048576, 1048576), 1);
   approx(toMb(524288, 1048576), 0.5);
+});
+
+test('maskPhoneNumber keeps the first and last three digits', () => {
+  assert.strictEqual(maskPhoneNumber('0400000123'), '040****123');
+  assert.strictEqual(maskPhoneNumber('0400 000 123'), '040****123');
+  assert.strictEqual(maskPhoneNumber('61400000012'), '614*****012');
+  assert.strictEqual(maskPhoneNumber('Account 1'), 'Account 1');
+  assert.strictEqual(maskPhoneNumber(''), '');
+  assert.strictEqual(maskPhoneNumber(undefined), '');
 });
 
 process.stdout.write('\nenv: .env parsing\n');
@@ -356,6 +366,20 @@ test('hide-names drops the owner names as well', () => {
   assert.ok(!out.includes('dad'), 'owner name must be hidden');
   assert.ok(out.includes('Account 1'), 'position label still used');
   assert.ok(!out.includes('姓名') && !out.includes('>Owner<'), 'no owner column');
+});
+
+test('mask-numbers shows a partially masked phone number', () => {
+  const first = { ...analysis, scope: 'account-1', account: '0400 000 123', owner: 'dad' };
+  const out = renderReport({
+    analyses: [first],
+    generatedAt: '2026-10-10 12:00 (Australia/Sydney)',
+    settings: { mbBase: 1048576, minMb: 1, highlightMb: 50 },
+    maskNumbers: true,
+  });
+  assert.ok(out.includes('040****123'), 'masked number used as the label');
+  assert.ok(!out.includes('0400 000 123'), 'the full number must not appear');
+  assert.ok(!out.includes('0400000123'), 'the unspaced number must not appear');
+  assert.ok(out.includes('>dad<'), 'owner name is kept');
 });
 
 process.stdout.write(`\n${passed} passed, ${failed} failed\n`);

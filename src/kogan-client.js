@@ -2,6 +2,7 @@
 
 const { HttpSession } = require('./http-session');
 const { createTranslator } = require('./i18n');
+const { maskPhoneNumber } = require('./mask');
 
 const ORIGIN = 'https://accounts.koganmobile.com.au';
 const LOGIN_URL = `${ORIGIN}/customer/login`;
@@ -54,9 +55,7 @@ function isLoginPage(html) {
 
 /** 0400000001 -> 040****001, so logs never print a full phone number. */
 function maskMsisdn(msisdn) {
-  const value = String(msisdn || '');
-  if (value.length <= 4) return value;
-  return `${value.slice(0, 3)}${'*'.repeat(Math.max(1, value.length - 6))}${value.slice(-3)}`;
+  return maskPhoneNumber(msisdn);
 }
 
 /**

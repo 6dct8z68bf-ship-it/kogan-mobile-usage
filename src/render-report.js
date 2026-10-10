@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { DEFAULT_LANG, normalizeLang } = require('./i18n');
+const { maskPhoneNumber } = require('./mask');
 
 const STYLES = fs.readFileSync(path.join(__dirname, 'report.css'), 'utf8');
 
@@ -86,12 +87,14 @@ function typeLabel(analysis) {
 /**
  * Label for one account.
  *
- * With --redact the phone number is replaced by a position-based label so a
- * report that gets committed or published never exposes the number. The
- * position matches the order of the entries in KOGAN_ACCOUNTS.
+ * Two ways to keep a published report from carrying a full phone number:
+ *   --mask-numbers  0400 000 123 -> 040****123 (still recognisable to you)
+ *   --redact        -> Account 1, numbered by the order of KOGAN_ACCOUNTS
+ * --mask-numbers wins when both are set.
  */
-function accountLabel(analysis, index, redact) {
-  if (redact) return `Account ${index + 1}`;
+function accountLabel(analysis, index, options) {
+  if (options.maskNumbers) return maskPhoneNumber(analysis.account);
+  if (options.redact) return `Account ${index + 1}`;
   return analysis.account || `Account ${index + 1}`;
 }
 
@@ -447,8 +450,8 @@ function renderRules(analysis) {
 ${extras.length ? `      <p class="foot-note">${extras.join('<span class="i18n-zh">・</span><span class="i18n-en"> &middot; </span>')}。</p>\n` : ''}`;
 }
 
-function renderAccountSection(analysis, index, redact, hideNames) {
-  const number = accountLabel(analysis, index, redact);
+function renderAccountSection(analysis, index, labelOptions, hideNames) {
+  const number = accountLabel(analysis, index, labelOptions);
   const owner = ownerLabel(analysis, hideNames);
   // With an owner name the phone number becomes a quieter suffix.
   const heading = owner ? `${esc(owner)}<span class="acct-num">${esc(number)}</span>` : esc(number);
@@ -487,7 +490,7 @@ ${renderRules(analysis)}
     </section>`;
 }
 
-function renderOverview(analyses, redact, hideNames) {
+function renderOverview(analyses, labelOptions, hideNames) {
   if (analyses.length < 2) return '';
   const hasOwners = !hideNames && analyses.some((a) => String(a.owner || '').trim());
   const totals = analyses.reduce(
@@ -506,7 +509,7 @@ function renderOverview(analyses, redact, hideNames) {
     .map(
       (a, i) => `          <tr>
             ${hasOwners ? `<td>${esc(String(a.owner || '').trim() || '—')}</td>` : ''}
-            <td><a href="#${esc(a.scope)}">${esc(accountLabel(a, i, redact))}</a></td>
+            <td><a href="#${esc(a.scope)}">${esc(accountLabel(a, i, labelOptions))}</a></td>
             <td class="num strong">${esc(fmtMb(a.stats.totalMb))}</td>
             <td class="num">${esc(fmtInt(a.stats.keptCount))}</td>
             <td class="num">${
@@ -569,11 +572,13 @@ function renderReport({
   lang = DEFAULT_LANG,
   redact = false,
   hideNames = false,
+  maskNumbers = false,
 }) {
-  const body = analyses.map((a, i) => renderAccountSection(a, i, redact, hideNames)).join('\n');
+  const labelOptions = { redact, maskNumbers };
+  const body = analyses.map((a, i) => renderAccountSection(a, i, labelOptions, hideNames)).join('\n');
   const defaultLang = normalizeLang(lang) || DEFAULT_LANG;
 
-  const onlyAccount = accountLabel(analyses[0], 0, redact);
+  const onlyAccount = accountLabel(analyses[0], 0, labelOptions);
   const titleZh =
     analyses.length === 1
       ? `Kogan Mobile 數據用量報告 - ${onlyAccount}`.trim()
@@ -622,7 +627,7 @@ ${STYLES}
     </div>
   </header>
   <div class="wrap">
-${renderOverview(analyses, redact, hideNames)}
+${renderOverview(analyses, labelOptions, hideNames)}
 ${body}
     <p class="page-foot">${bi(
       '此報告由 kogan-mobile-data-usage 自動產生・資料版權屬 Kogan Mobile・僅供個人用量分析參考',

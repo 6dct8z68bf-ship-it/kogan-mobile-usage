@@ -43,6 +43,7 @@ const USAGE = {
       --mb-base <n>        位元組(B)換算基準：1 MB = 多少 bytes（預設 1048576）
       --lang <zh|en>       輸出語言（預設 zh）
       --redact             以 Account 1..N 取代門號（保留主人姓名，公開報告用）
+      --mask-numbers       門號顯示成 040****123（保留可辨識性，公開報告用）
       --hide-names         連主人姓名也一併隱藏（搭配 --redact 使用）
   -o, --out <file>         輸出 HTML 路徑（預設 out/usage-report.html）
       --save-raw <dir>     保存抓取到的原始 HTML（預設 out/raw）
@@ -75,6 +76,7 @@ Options:
       --mb-base <n>        bytes per MB for byte-denominated rows (default 1048576)
       --lang <zh|en>       output language (default zh)
       --redact             replace phone numbers with Account 1..N (owner names stay)
+      --mask-numbers       show phone numbers as 040****123 (owner names stay)
       --hide-names         also hide the owner names (use with --redact)
   -o, --out <file>         output HTML path (default out/usage-report.html)
       --save-raw <dir>     keep the fetched raw HTML (default out/raw)

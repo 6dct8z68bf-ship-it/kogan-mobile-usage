@@ -67,6 +67,7 @@ Node.js LTS if you want this tool to be independent of Codex.
 | `--mb-base <n>` | bytes per MB for rows shown as `B` (`1048576` binary / `1000000` decimal) | `1048576` |
 | `--lang <zh\|en>` | default report language and console language | `zh` |
 | `--redact` | replace phone numbers with `Account 1`, `Account 2`, ... (owner names stay) | off |
+| `--mask-numbers` | show phone numbers as `040****123` instead of `Account 1` (owner names stay) | off |
 | `--hide-names` | also hide the owner names (use with `--redact`) | off |
 | `-o`, `--out <file>` | output HTML path | `out/usage-report.html` |
 | `--save-raw <dir>` | keep the fetched raw HTML (useful for debugging) | `out/raw` |
@@ -221,14 +222,18 @@ https://6dct8z68bf-ship-it.github.io/kogan-mobile-data-usage/
 ```
 
 Because both the repository and that page are public, the workflow always runs
-with `--redact`: every phone number becomes `Account 1`, `Account 2`, ... and
-the owner names from `KOGAN_ACCOUNTS` are kept as labels. **Whatever you put in
-the name field of `KOGAN_ACCOUNTS` therefore becomes public**, so use a nickname
-rather than a real name; add `--hide-names` to the workflow if you would rather
-publish the position labels only. `Account N` follows the order of the entries
-in `KOGAN_ACCOUNTS`, so keep that order stable if you want the numbering to stay
-meaningful. Never commit or publish a report that was generated without
-`--redact`.
+with a redaction flag, and the owner names from `KOGAN_ACCOUNTS` are kept as
+labels. Two label styles are available:
+
+| Flag | The phone number appears as | Notes |
+| --- | --- | --- |
+| `--mask-numbers` | `040****123` | still recognisable to you, but the first and last three digits stay visible |
+| `--redact` | `Account 1`, `Account 2`, ... | nothing of the number is published; numbering follows the order in `KOGAN_ACCOUNTS` |
+
+`--mask-numbers` wins if both are set. **Whatever you put in the name field of
+`KOGAN_ACCOUNTS` becomes public**, so use a nickname rather than a real name, and
+add `--hide-names` if you would rather publish the labels only. Never commit or
+publish a report that was generated without one of these flags.
 
 ### Repository secret
 

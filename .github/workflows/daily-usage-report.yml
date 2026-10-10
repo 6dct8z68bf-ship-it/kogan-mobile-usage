@@ -97,10 +97,12 @@ jobs:
           mkdir -p out
           # --no-save-raw keeps the fetched pages (which contain full phone numbers)
           # out of the workspace entirely.
-          # --redact is mandatory here: this repository is public, so the committed
-          # report must not contain any phone number. The owner names are treated
-          # as public nicknames; add --hide-names as well if that is not wanted.
-          node src/index.js --no-save-raw --redact --out out/usage-report.html 2>&1 | tee "${LOG_FILE}"
+          # A redaction flag is mandatory here: this repository is public, so the
+          # committed report must never carry a full phone number.
+          #   --mask-numbers  -> 040****123      --redact -> Account 1
+          # The owner names are treated as public nicknames; add --hide-names if
+          # they should not be published either.
+          node src/index.js --no-save-raw --mask-numbers --out out/usage-report.html 2>&1 | tee "${LOG_FILE}"
           # Keep a pristine copy. The commit step rebuilds the branch on top of the
           # newest remote commit, which would otherwise replace this file.
           cp out/usage-report.html "${REPORT_COPY}"
@@ -155,7 +157,8 @@ jobs:
         run: rm -f .env
 
       # The report is also published as a web page. Everything that reaches
-      # Pages went through --redact, so the site never contains a phone number.
+      # Pages went through a redaction flag, so the site never contains a full
+      # phone number.
       - name: Build the Pages site
         run: |
           set -euo pipefail
