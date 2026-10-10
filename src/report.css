@@ -129,6 +129,29 @@ h3.block-title::before { content: ""; width: 4px; height: 15px; border-radius: 2
 .chart-val { text-align: right; color: #3f4653; font-variant-numeric: tabular-nums; }
 .chart-val em { color: var(--high-line); font-style: normal; font-size: 12px; }
 
+/* Cumulative usage line chart (inline SVG, no external library) */
+.line-chart {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px 4px;
+  background: #fcfcfd;
+}
+.line-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.line-chart .grid { stroke: var(--line); stroke-width: 1; }
+.line-chart .grid--v { stroke: #eef0f3; }
+.line-chart .axis-label { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.line-chart .actual-area { fill: rgba(107, 114, 128, .14); }
+.line-chart .actual-line { fill: none; stroke: #4b5563; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.line-chart .actual-dot { fill: #4b5563; }
+.line-chart .proj-line { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; stroke-linecap: round; }
+.line-chart .proj-dot { fill: var(--accent); }
+.line-chart .proj-label { fill: #b42318; font-size: 11.5px; font-weight: 650; font-family: inherit; }
+.line-chart .legend { display: flex; flex-wrap: wrap; gap: 18px; margin: 6px 0 2px; font-size: 12.5px; color: #3f4653; }
+.line-chart .legend .swatch { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.line-chart .legend .swatch--actual { background: #4b5563; }
+.line-chart .legend .swatch--proj { background: repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 10px); }
+.line-chart .foot-note { margin: 4px 0 6px; }
+
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 10px; }
 .toolbar button {
   font: inherit;

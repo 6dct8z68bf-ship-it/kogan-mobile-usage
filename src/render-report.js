@@ -5,6 +5,7 @@ const path = require('path');
 
 const { DEFAULT_LANG, normalizeLang } = require('./i18n');
 const { maskPhoneNumber } = require('./mask');
+const { isoToUtc, utcToIso, isoToShortDisplay } = require('./clean-usage');
 
 const STYLES = fs.readFileSync(path.join(__dirname, 'report.css'), 'utf8');
 
@@ -264,6 +265,124 @@ ${rows}
       )}</p>`;
 }
 
+/** 2026-10-06 -> 06/10/2026 */
+function isoToDisplayDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || '');
+}
+
+/**
+ * Cumulative usage as a line chart, with the current rate projected forward.
+ *
+ * X is the date and Y is the cumulative usage. The solid line is what was
+ * actually recorded, the dashed line carries the average daily rate of the
+ * observed period forward to the projection date (the plan expiry by default).
+ * Everything is inline SVG, so the report stays a single offline file.
+ */
+function renderUsageChart(analysis) {
+  const p = analysis.projection;
+  if (!p || p.points.length === 0) return '';
+
+  const W = 880;
+  const H = 300;
+  const pad = { top: 16, right: 104, bottom: 38, left: 72 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  const t0 = isoToUtc(p.firstIso);
+  const tLast = isoToUtc(p.lastIso);
+  const tEnd = Math.max(tLast, isoToUtc(p.untilIso));
+  const span = tEnd - t0 || 1;
+  const yTop = Math.max(p.projectedTotalMb, p.totalMb) * 1.08 || 1;
+
+  const X = (ts) => pad.left + ((ts - t0) / span) * plotW;
+  const Y = (mb) => pad.top + plotH - (Math.max(0, mb) / yTop) * plotH;
+
+  const marks = [];
+  for (let i = 0; i <= 4; i += 1) {
+    const value = (yTop / 4) * i;
+    const y = Y(value);
+    marks.push(
+      `<line class="grid" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${(pad.left + plotW).toFixed(1)}" y2="${y.toFixed(1)}"/>`,
+      `<text class="axis-label" x="${pad.left - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end">${esc(fmtMb(value))}</text>`
+    );
+  }
+  for (let i = 0; i <= 6; i += 1) {
+    const ts = t0 + (span / 6) * i;
+    const x = X(ts);
+    marks.push(
+      `<line class="grid grid--v" x1="${x.toFixed(1)}" y1="${pad.top}" x2="${x.toFixed(1)}" y2="${(pad.top + plotH).toFixed(1)}"/>`,
+      `<text class="axis-label" x="${x.toFixed(1)}" y="${H - 14}" text-anchor="middle">${esc(isoToShortDisplay(utcToIso(ts)))}</text>`
+    );
+  }
+
+  const points = p.points.map(
+    (pt) => `${X(isoToUtc(pt.dateIso)).toFixed(1)},${Y(pt.cumulativeMb).toFixed(1)}`
+  );
+  const line = `M ${points.join(' L ')}`;
+  const area = `${line} L ${X(tLast).toFixed(1)},${Y(0).toFixed(1)} L ${X(t0).toFixed(1)},${Y(0).toFixed(1)} Z`;
+  const dots = p.points
+    .map(
+      (pt) =>
+        `<circle class="actual-dot" cx="${X(isoToUtc(pt.dateIso)).toFixed(1)}" cy="${Y(pt.cumulativeMb).toFixed(1)}" r="2.4"/>`
+    )
+    .join('');
+
+  let projected = '';
+  if (p.remainingDays > 0) {
+    const xEnd = X(tEnd);
+    const yStart = Y(p.totalMb);
+    const yEnd = Y(p.projectedTotalMb);
+    projected = [
+      `<line class="proj-line" x1="${X(tLast).toFixed(1)}" y1="${yStart.toFixed(1)}" x2="${xEnd.toFixed(1)}" y2="${yEnd.toFixed(1)}"/>`,
+      `<circle class="proj-dot" cx="${xEnd.toFixed(1)}" cy="${yEnd.toFixed(1)}" r="3.5"/>`,
+      `<text class="proj-label" x="${(xEnd + 9).toFixed(1)}" y="${(yEnd + 4).toFixed(1)}">${esc(fmtMb(p.projectedTotalMb))}</text>`,
+    ].join('');
+  }
+
+  const until = isoToDisplayDate(p.untilIso);
+  const caption =
+    p.remainingDays > 0
+      ? bi(
+          `實際區間 ${isoToDisplayDate(p.firstIso)}–${isoToDisplayDate(p.lastIso)}（${p.spanDays} 天），平均 ${fmtMb(
+            p.avgPerDayMb
+          )}/天；依此速率到 ${until} 約 ${fmtMb(p.projectedTotalMb)}。`,
+          `Observed ${isoToDisplayDate(p.firstIso)}-${isoToDisplayDate(p.lastIso)} (${
+            p.spanDays
+          } days), averaging ${fmtMb(p.avgPerDayMb)}/day; at that rate about ${fmtMb(
+            p.projectedTotalMb
+          )} by ${until}.`
+        )
+      : bi(
+          `實際區間 ${isoToDisplayDate(p.firstIso)}–${isoToDisplayDate(p.lastIso)}（${p.spanDays} 天），合計 ${fmtMb(p.totalMb)}。`,
+          `Observed ${isoToDisplayDate(p.firstIso)}-${isoToDisplayDate(p.lastIso)} (${
+            p.spanDays
+          } days), ${fmtMb(p.totalMb)} in total.`
+        );
+
+  return `      <div class="line-chart">
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="cumulative usage and projection">
+          ${marks.join('\n          ')}
+          <path class="actual-area" d="${area}"/>
+          <path class="actual-line" d="${line}"/>
+          ${dots}
+          ${projected}
+        </svg>
+        <div class="legend">
+          <span><i class="swatch swatch--actual"></i>${bi('實際累積用量', 'Actual cumulative usage')}</span>
+          ${
+            p.remainingDays > 0
+              ? `<span><i class="swatch swatch--proj"></i>${bi(
+                  '依目前平均速率投射',
+                  'Projected at the current average rate'
+                )}</span>`
+              : ''
+          }
+        </div>
+        <p class="foot-note">${caption}</p>
+      </div>`;
+}
+
 function renderDetailTable(analysis) {
   const scope = analysis.scope;
   const max = analysis.stats.maxMb || 1;
@@ -483,6 +602,8 @@ function renderAccountSection(analysis, index, labelOptions, hideNames) {
 ${renderSummaryCards(analysis)}
       <h3 class="block-title">${bi('每日用量', 'Daily usage')}</h3>
 ${renderChart(analysis)}
+      <h3 class="block-title">${bi('累積用量與投射', 'Cumulative usage and projection')}</h3>
+${renderUsageChart(analysis)}
       <h3 class="block-title">${bi('用量明細（新 → 舊）', 'Usage detail (newest first)')}</h3>
 ${renderDetailTable(analysis)}
 ${renderDailyTable(analysis)}

@@ -7,7 +7,7 @@ const path = require('path');
 
 const { parseDurationOrSize, toMb } = require('../src/units');
 const { parseUsageHtml } = require('../src/parse-usage');
-const { cleanUsage } = require('../src/clean-usage');
+const { cleanUsage, buildProjection } = require('../src/clean-usage');
 const { renderReport } = require('../src/render-report');
 const { parseEnvFile, collectAccounts } = require('../src/env');
 const { maskPhoneNumber } = require('../src/mask');
@@ -253,6 +253,42 @@ test('boundary values: 1 MB kept, 50 MB not flagged', () => {
   assert.strictEqual(result.stats.highlightedCount, 0);
 });
 
+test('projects the average rate forward to the plan expiry', () => {
+  const synthetic = {
+    account: 'TEST',
+    rows: [
+      { date: '01/01/2026', time: '01:00:00', type: 'Domestic Data', country: 'Australia', number: 'Internet', durationMB: '100 MB', charged: 'From Pack' },
+      { date: '02/01/2026', time: '01:00:00', type: 'Domestic Data', country: 'Australia', number: 'Internet', durationMB: '300 MB', charged: 'From Pack' },
+    ],
+  };
+  const result = cleanUsage(synthetic, { minMb: 1, highlightMb: 50, projectUntil: '2026-01-11' });
+  const p = result.projection;
+  assert.ok(p, 'projection expected');
+  assert.strictEqual(p.spanDays, 2);
+  approx(p.totalMb, 400, 0.001);
+  approx(p.avgPerDayMb, 200, 0.001);
+  assert.strictEqual(p.remainingDays, 9);
+  approx(p.projectedTotalMb, 2200, 0.001);
+  assert.strictEqual(p.points.length, 2);
+  assert.strictEqual(p.points[0].cumulativeMb.toFixed(0), '100');
+  assert.strictEqual(p.points[1].cumulativeMb.toFixed(0), '400');
+});
+
+test('projection fills gaps with zero usage days', () => {
+  const p = buildProjection(
+    [
+      { dateIso: '2026-01-01', mb: 100 },
+      { dateIso: '2026-01-04', mb: 100 },
+    ],
+    { projectUntil: '2026-01-04' }
+  );
+  assert.strictEqual(p.spanDays, 4);
+  assert.strictEqual(p.points.length, 4);
+  assert.deepStrictEqual(p.points.map((x) => x.cumulativeMb), [100, 100, 100, 200]);
+  assert.strictEqual(p.remainingDays, 0);
+  approx(p.projectedTotalMb, 200, 0.001);
+});
+
 process.stdout.write('\nrender: HTML output\n');
 
 test('renders a standalone HTML report with the key elements', () => {
@@ -380,6 +416,21 @@ test('mask-numbers shows a partially masked phone number', () => {
   assert.ok(!out.includes('0400 000 123'), 'the full number must not appear');
   assert.ok(!out.includes('0400000123'), 'the unspaced number must not appear');
   assert.ok(out.includes('>dad<'), 'owner name is kept');
+});
+
+test('renders the cumulative usage chart with the projection', () => {
+  const withProjection = cleanUsage(parseUsageHtml(html), { minMb: 1, highlightMb: 50, projectUntil: '2027-10-06' });
+  const out = renderReport({
+    analyses: [withProjection],
+    generatedAt: '2026-10-11 10:00 (Australia/Sydney)',
+    settings: { mbBase: 1048576, minMb: 1, highlightMb: 50 },
+  });
+  assert.ok(out.includes('<svg'), 'inline svg expected');
+  assert.ok(out.includes('class="proj-line"'), 'dashed projection line expected');
+  assert.ok(out.includes('Cumulative usage and projection'), 'section title expected');
+  assert.ok(out.includes('累積用量與投射'), 'zh section title expected');
+  assert.ok(out.includes('06/10/2027'), 'projection date in the caption');
+  assert.ok(/proj-label[^>]*>[^<]*GB</.test(out), 'projected total label expected');
 });
 
 process.stdout.write(`\n${passed} passed, ${failed} failed\n`);

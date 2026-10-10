@@ -5,6 +5,72 @@ const { parseDurationOrSize, DEFAULT_BYTE_BASE } = require('./units');
 // Unit-to-MB factors, used to estimate the rounding error of displayed values.
 const UNIT_TO_MB = { B: 0, KB: 0.001, MB: 1, GB: 1000, TB: 1e6, PB: 1e9 };
 
+const DAY_MS = 86400000;
+
+/** "2027-10-06" -> UTC timestamp. Returns NaN for anything else. */
+function isoToUtc(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso === null || iso === undefined ? '' : iso));
+  if (!m) return NaN;
+  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+function utcToIso(ts) {
+  const d = new Date(ts);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+/** "2026-10-06" -> "06/10" for chart tick labels. */
+function isoToShortDisplay(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso === null || iso === undefined ? '' : iso));
+  return m ? `${m[3]}/${m[2]}` : String(iso || '');
+}
+
+/**
+ * Cumulative usage per day plus a straight line projection.
+ *
+ * `projectUntil` is the date the usage is carried forward to (the plan expiry).
+ * The projection uses the average of the observed period, which is the simplest
+ * answer to "at this rate, where do we end up?".
+ */
+function buildProjection(days, options = {}) {
+  const untilIso = String(options.projectUntil || '');
+  const until = isoToUtc(untilIso);
+  const sorted = days.slice().sort((a, b) => (a.dateIso < b.dateIso ? -1 : 1));
+  if (!sorted.length || !Number.isFinite(until)) return null;
+
+  const firstIso = sorted[0].dateIso;
+  const lastIso = sorted[sorted.length - 1].dateIso;
+  const first = isoToUtc(firstIso);
+  const last = isoToUtc(lastIso);
+  if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
+
+  const spanDays = Math.round((last - first) / DAY_MS) + 1;
+  const totalMb = sorted.reduce((sum, d) => sum + d.mb, 0);
+  const avgPerDayMb = spanDays > 0 ? totalMb / spanDays : 0;
+
+  const byDate = new Map(sorted.map((d) => [d.dateIso, d.mb]));
+  const points = [];
+  let cumulative = 0;
+  for (let ts = first; ts <= last; ts += DAY_MS) {
+    const iso = utcToIso(ts);
+    cumulative += byDate.get(iso) || 0;
+    points.push({ dateIso: iso, cumulativeMb: cumulative });
+  }
+
+  const remainingDays = Math.max(0, Math.round((until - last) / DAY_MS));
+  return {
+    untilIso,
+    firstIso,
+    lastIso,
+    spanDays,
+    totalMb,
+    avgPerDayMb,
+    remainingDays,
+    projectedTotalMb: totalMb + avgPerDayMb * remainingDays,
+    points,
+  };
+}
+
 /** 09/10/2026 -> { iso: '2026-10-09', display: '09/10/2026' }; also accepts 2026-10-09. */
 function normaliseDate(raw) {
   const value = String(raw || '').trim();
@@ -152,6 +218,8 @@ function cleanUsage(parsed, options = {}) {
   const days = [...dailyMap.values()]
     .sort((a, b) => (a.dateIso < b.dateIso ? 1 : -1));
 
+  const projection = buildProjection(days, options);
+
   const voiceSeconds = voiceRecords.reduce((sum, r) => sum + r.seconds, 0);
   const maxMb = kept.reduce((max, r) => Math.max(max, r.mb), 0);
   const avgMb = kept.length ? totalMb / kept.length : 0;
@@ -175,6 +243,7 @@ function cleanUsage(parsed, options = {}) {
     ignored,
     highlighted,
     days,
+    projection,
     voiceRecords,
     smsRecords,
     otherRecords,
@@ -206,4 +275,13 @@ function cleanUsage(parsed, options = {}) {
   };
 }
 
-module.exports = { cleanUsage, normaliseDate, normaliseTime, isDataRow };
+module.exports = {
+  cleanUsage,
+  buildProjection,
+  normaliseDate,
+  normaliseTime,
+  isDataRow,
+  isoToUtc,
+  utcToIso,
+  isoToShortDisplay,
+};
