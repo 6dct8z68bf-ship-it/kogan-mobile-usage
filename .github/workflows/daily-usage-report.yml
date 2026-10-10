@@ -24,9 +24,10 @@ on:
         options: ['en', 'zh']
         default: 'en'
 
-# Only the report is written back, so read/write access to contents is enough.
+# Nothing is written back to the repository; the report is delivered through the
+# Pages site and the workflow artifact.
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: daily-usage-report
@@ -37,10 +38,10 @@ jobs:
     name: Fetch usage and render the report
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # pages: write is needed by actions/configure-pages when it creates the
-    # Pages site for the first time (enablement: true).
+    # pages: write is needed by actions/configure-pages to create the Pages site
+    # on the first run (enablement: true).
     permissions:
-      contents: write
+      contents: read
       pages: write
 
     steps:
@@ -91,7 +92,6 @@ jobs:
       - name: Generate the report
         env:
           LOG_FILE: ${{ runner.temp }}/usage-report.log
-          REPORT_COPY: ${{ runner.temp }}/usage-report.html
         run: |
           set -euo pipefail
           mkdir -p out
@@ -103,9 +103,6 @@ jobs:
           # The owner names are treated as public nicknames; add --hide-names if
           # they should not be published either.
           node src/index.js --no-save-raw --mask-numbers --out out/usage-report.html 2>&1 | tee "${LOG_FILE}"
-          # Keep a pristine copy. The commit step rebuilds the branch on top of the
-          # newest remote commit, which would otherwise replace this file.
-          cp out/usage-report.html "${REPORT_COPY}"
 
       - name: Upload the report as an artifact
         uses: actions/upload-artifact@v7
@@ -114,55 +111,6 @@ jobs:
           path: out/usage-report.html
           retention-days: 30
           if-no-files-found: error
-
-      - name: Commit the report
-        env:
-          REPORT_COPY: ${{ runner.temp }}/usage-report.html
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-
-          # Never rebase or merge this file: two runs never produce byte-identical
-          # reports (the generation timestamp differs), so replaying a report
-          # commit on top of another one always conflicts. Instead, move the
-          # branch onto the newest remote commit and drop the fresh report on top,
-          # which keeps the history linear and the push a fast-forward.
-          for attempt in 1 2 3; do
-            git fetch --depth=1 origin "${GITHUB_REF_NAME}"
-            git reset --mixed FETCH_HEAD
-            cp "${REPORT_COPY}" out/usage-report.html
-            git add out/usage-report.html
-
-            if git diff --cached --quiet; then
-              echo "Report unchanged since the last run; nothing to commit."
-              exit 0
-            fi
-
-            git commit -m "chore: usage report $(date -u +%Y-%m-%d)"
-            if git push origin "HEAD:${GITHUB_REF_NAME}" 2>push-error.txt; then
-              echo "Report pushed on attempt ${attempt}."
-              rm -f push-error.txt
-              exit 0
-            fi
-
-            # Branch protection on main rejects pushes from GITHUB_TOKEN. That must
-            # not fail the whole run: the report has already been uploaded as an
-            # artifact and the Pages deployment still has to happen.
-            if grep -qE 'protected branch|GH006' push-error.txt; then
-              echo "::warning::${GITHUB_REF_NAME} is protected, so the report could not be committed. The artifact and the GitHub Pages site were still updated. See the README for the options."
-              cat push-error.txt
-              rm -f push-error.txt
-              exit 0
-            fi
-
-            cat push-error.txt
-            echo "Push rejected because the remote moved; retrying with the newest commit."
-            sleep 5
-          done
-
-          echo "::error::Could not push the report after 3 attempts."
-          exit 1
 
       - name: Remove the generated .env
         if: always()
