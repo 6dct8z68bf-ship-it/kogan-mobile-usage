@@ -4,7 +4,25 @@ on:
   schedule:
     # 20:00 UTC = 06:00 AEST, or 07:00 while daylight saving is in effect (Sydney).
     - cron: '0 20 * * *'
+  # Manual runs: Actions -> Daily usage report -> Run workflow. The inputs apply
+  # to that single run and override the repository variables.
   workflow_dispatch:
+    inputs:
+      months:
+        description: 'Usage period to fetch'
+        type: choice
+        options: ['1', '3', '6']
+        default: '1'
+      type:
+        description: 'Usage type'
+        type: choice
+        options: ['Data', 'All', 'SMSMMS', 'Calls']
+        default: 'Data'
+      lang:
+        description: 'Report language'
+        type: choice
+        options: ['en', 'zh']
+        default: 'en'
 
 # Only the report is written back, so read/write access to contents is enough.
 permissions:
@@ -47,9 +65,9 @@ jobs:
       - name: Write .env from secrets and variables
         env:
           SECRET_ACCOUNTS: ${{ secrets.KOGAN_ACCOUNTS }}
-          VAR_LANG: ${{ vars.KOGAN_LANG }}
-          VAR_MONTHS: ${{ vars.KOGAN_MONTHS }}
-          VAR_TYPE: ${{ vars.KOGAN_USAGE_TYPE }}
+          VAR_LANG: ${{ inputs.lang || vars.KOGAN_LANG }}
+          VAR_MONTHS: ${{ inputs.months || vars.KOGAN_MONTHS }}
+          VAR_TYPE: ${{ inputs.type || vars.KOGAN_USAGE_TYPE }}
           VAR_MIN_MB: ${{ vars.KOGAN_MIN_MB }}
           VAR_HIGHLIGHT_MB: ${{ vars.KOGAN_HIGHLIGHT_MB }}
         run: |
@@ -73,6 +91,7 @@ jobs:
       - name: Generate the report
         env:
           LOG_FILE: ${{ runner.temp }}/usage-report.log
+          REPORT_COPY: ${{ runner.temp }}/usage-report.html
         run: |
           set -euo pipefail
           mkdir -p out
@@ -81,6 +100,9 @@ jobs:
           # --redact is mandatory here: this repository is public, so the committed
           # report must not contain any phone number or owner name.
           node src/index.js --no-save-raw --redact --out out/usage-report.html 2>&1 | tee "${LOG_FILE}"
+          # Keep a pristine copy. The commit step rebuilds the branch on top of the
+          # newest remote commit, which would otherwise replace this file.
+          cp out/usage-report.html "${REPORT_COPY}"
 
       - name: Upload the report as an artifact
         uses: actions/upload-artifact@v7
@@ -91,18 +113,41 @@ jobs:
           if-no-files-found: error
 
       - name: Commit the report
+        env:
+          REPORT_COPY: ${{ runner.temp }}/usage-report.html
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add out/usage-report.html
-          if git diff --cached --quiet; then
-            echo "Report unchanged since the last run; nothing to commit."
-            exit 0
-          fi
-          git commit -m "chore: usage report $(date -u +%Y-%m-%d)"
-          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
-          git push
+
+          # Never rebase or merge this file: two runs never produce byte-identical
+          # reports (the generation timestamp differs), so replaying a report
+          # commit on top of another one always conflicts. Instead, move the
+          # branch onto the newest remote commit and drop the fresh report on top,
+          # which keeps the history linear and the push a fast-forward.
+          for attempt in 1 2 3; do
+            git fetch --depth=1 origin "${GITHUB_REF_NAME}"
+            git reset --mixed FETCH_HEAD
+            cp "${REPORT_COPY}" out/usage-report.html
+            git add out/usage-report.html
+
+            if git diff --cached --quiet; then
+              echo "Report unchanged since the last run; nothing to commit."
+              exit 0
+            fi
+
+            git commit -m "chore: usage report $(date -u +%Y-%m-%d)"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Report pushed on attempt ${attempt}."
+              exit 0
+            fi
+
+            echo "Push rejected because the remote moved; retrying with the newest commit."
+            sleep 5
+          done
+
+          echo "::error::Could not push the report after 3 attempts."
+          exit 1
 
       - name: Remove the generated .env
         if: always()
