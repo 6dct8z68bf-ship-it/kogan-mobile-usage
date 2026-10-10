@@ -330,3 +330,7 @@ in the workflow log.
 This covers unit conversion, `.env` parsing, the sample page (56 rows: 23 kept,
 8 ignored, 5 highlighted, 1103.23 MB total), boundary values, bilingual HTML
 output and owner names.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
