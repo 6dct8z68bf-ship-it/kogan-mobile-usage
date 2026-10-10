@@ -200,7 +200,17 @@ file is uploaded as a workflow artifact with 30 days of retention.
 
 The workflow runs at `0 20 * * *` UTC — 06:00 in Sydney, or 07:00 while daylight
 saving is in effect. It also has a manual trigger: **Actions → Daily usage
-report → Run workflow**.
+report → Run workflow**. A manual run takes three optional inputs, which apply
+to that single run and override the repository variables:
+
+| Input | Options | Default |
+| --- | --- | --- |
+| `months` | `1`, `3`, `6` | `1` |
+| `type` | `Data`, `All`, `SMSMMS`, `Calls` | `Data` |
+| `lang` | `en`, `zh` | `en` |
+
+The same inputs work from the command line, for example
+`gh workflow run daily-usage-report.yml -f months=3`.
 
 The same run publishes the report to GitHub Pages, so the latest version is one
 tap away on a phone:
