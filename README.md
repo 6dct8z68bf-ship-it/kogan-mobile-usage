@@ -217,6 +217,28 @@ The same inputs work from the command line, for example
 Because nothing is pushed back, the workflow keeps working unchanged even when
 `main` is protected with "Require a pull request before merging".
 
+## Making changes to this repository
+
+`main` is protected, so every change goes through a pull request:
+
+| Rule | Value |
+| --- | --- |
+| Require a pull request before merging | on |
+| Required approvals | 1 |
+| Require review from Code Owners | on (`CODEOWNERS` assigns everything to `@henryliu18`) |
+| Include administrators | on, so nobody can bypass the rules |
+
+GitHub does not let an account approve its own pull request, so the two accounts
+have to approve each other's work:
+
+| Pull request opened by | Must be approved by |
+| --- | --- |
+| `6dct8z68bf-ship-it` | `henryliu18` |
+| `henryliu18` | `6dct8z68bf-ship-it` |
+
+Keep both accounts accessible. The bypass list is empty, so a pull request can
+only be merged once the code owner has approved it.
+
 The same run publishes the report to GitHub Pages, so the latest version is one
 tap away on a phone:
 
