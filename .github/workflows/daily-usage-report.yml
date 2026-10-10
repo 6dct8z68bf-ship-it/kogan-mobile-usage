@@ -2,7 +2,7 @@ name: Daily usage report
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 * * * *'
   # Manual runs: Actions -> Daily usage report -> Run workflow. The inputs apply
   # to that single run and override the repository variables.
   workflow_dispatch:
