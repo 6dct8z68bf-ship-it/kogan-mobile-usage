@@ -19,6 +19,11 @@ jobs:
     name: Fetch usage and render the report
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # pages: write is needed by actions/configure-pages when it creates the
+    # Pages site for the first time (enablement: true).
+    permissions:
+      contents: write
+      pages: write
 
     steps:
       - name: Check out the repository
