@@ -47,7 +47,15 @@ class CliError extends Error {
 }
 
 function parseArgs(argv) {
-  const options = { fixtures: [], values: {}, help: false, open: false, saveRaw: true, redact: false };
+  const options = {
+    fixtures: [],
+    values: {},
+    help: false,
+    open: false,
+    saveRaw: true,
+    redact: false,
+    hideNames: false,
+  };
   const positional = [];
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -71,6 +79,10 @@ function parseArgs(argv) {
     }
     if (token === '--redact') {
       options.redact = true;
+      continue;
+    }
+    if (token === '--hide-names') {
+      options.hideNames = true;
       continue;
     }
     if (token === '-f') {
@@ -278,6 +290,7 @@ async function main() {
     settings = {
       lang,
       redact: options.redact || isTruthy(env.KOGAN_REDACT),
+      hideNames: options.hideNames || isTruthy(env.KOGAN_HIDE_NAMES),
       months: normaliseMonths(pick(options.values.months, env.KOGAN_MONTHS, 1), 1),
       type: normaliseType(pick(options.values.type, env.KOGAN_USAGE_TYPE, 'Data'), 'Data'),
       minMb: toPositiveNumber(pick(options.values['min-mb'], env.KOGAN_MIN_MB, 1), 1, '--min-mb'),
@@ -420,6 +433,7 @@ async function main() {
     generatedAt: formatNowSydney(),
     lang,
     redact: settings.redact,
+    hideNames: settings.hideNames,
     settings,
     sourceLabel: 'accounts.koganmobile.com.au/service/usage',
   });

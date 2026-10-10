@@ -42,7 +42,8 @@ const USAGE = {
       --highlight-mb <n>   大於此 MB 數 highlight（預設 50）
       --mb-base <n>        位元組(B)換算基準：1 MB = 多少 bytes（預設 1048576）
       --lang <zh|en>       輸出語言（預設 zh）
-      --redact             以 Account 1..N 取代門號與姓名（要公開報告時使用）
+      --redact             以 Account 1..N 取代門號（保留主人姓名，公開報告用）
+      --hide-names         連主人姓名也一併隱藏（搭配 --redact 使用）
   -o, --out <file>         輸出 HTML 路徑（預設 out/usage-report.html）
       --save-raw <dir>     保存抓取到的原始 HTML（預設 out/raw）
       --no-save-raw        不保存原始 HTML
@@ -73,7 +74,8 @@ Options:
       --highlight-mb <n>   highlight records above this many MB (default 50)
       --mb-base <n>        bytes per MB for byte-denominated rows (default 1048576)
       --lang <zh|en>       output language (default zh)
-      --redact             replace phone numbers and names with Account 1..N
+      --redact             replace phone numbers with Account 1..N (owner names stay)
+      --hide-names         also hide the owner names (use with --redact)
   -o, --out <file>         output HTML path (default out/usage-report.html)
       --save-raw <dir>     keep the fetched raw HTML (default out/raw)
       --no-save-raw        do not keep the fetched raw HTML

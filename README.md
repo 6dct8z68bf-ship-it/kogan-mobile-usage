@@ -66,7 +66,8 @@ Node.js LTS if you want this tool to be independent of Codex.
 | `--highlight-mb <n>` | highlight records above this many MB | `50` |
 | `--mb-base <n>` | bytes per MB for rows shown as `B` (`1048576` binary / `1000000` decimal) | `1048576` |
 | `--lang <zh\|en>` | default report language and console language | `zh` |
-| `--redact` | replace phone numbers and owner names with `Account 1`, `Account 2`, ... | off |
+| `--redact` | replace phone numbers with `Account 1`, `Account 2`, ... (owner names stay) | off |
+| `--hide-names` | also hide the owner names (use with `--redact`) | off |
 | `-o`, `--out <file>` | output HTML path | `out/usage-report.html` |
 | `--save-raw <dir>` | keep the fetched raw HTML (useful for debugging) | `out/raw` |
 | `--no-save-raw` | do not keep the fetched raw HTML | — |
@@ -221,8 +222,11 @@ https://6dct8z68bf-ship-it.github.io/kogan-mobile-data-usage/
 
 Because both the repository and that page are public, the workflow always runs
 with `--redact`: every phone number becomes `Account 1`, `Account 2`, ... and
-owner names are dropped. `Account N` follows the order of the entries in
-`KOGAN_ACCOUNTS`, so keep that order stable if you want the numbering to stay
+the owner names from `KOGAN_ACCOUNTS` are kept as labels. **Whatever you put in
+the name field of `KOGAN_ACCOUNTS` therefore becomes public**, so use a nickname
+rather than a real name; add `--hide-names` to the workflow if you would rather
+publish the position labels only. `Account N` follows the order of the entries
+in `KOGAN_ACCOUNTS`, so keep that order stable if you want the numbering to stay
 meaningful. Never commit or publish a report that was generated without
 `--redact`.
 

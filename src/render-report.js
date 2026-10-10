@@ -86,18 +86,24 @@ function typeLabel(analysis) {
 /**
  * Label for one account.
  *
- * With --redact the phone number and the owner name are both replaced by a
- * position-based label, so a report that gets committed or published can never
- * expose who a number belongs to. The position matches the order of the entries
- * in KOGAN_ACCOUNTS.
+ * With --redact the phone number is replaced by a position-based label so a
+ * report that gets committed or published never exposes the number. The
+ * position matches the order of the entries in KOGAN_ACCOUNTS.
  */
 function accountLabel(analysis, index, redact) {
   if (redact) return `Account ${index + 1}`;
   return analysis.account || `Account ${index + 1}`;
 }
 
-function ownerLabel(analysis, redact) {
-  if (redact) return '';
+/**
+ * Owner name.
+ *
+ * --redact keeps it, because a nickname is what makes a redacted report
+ * readable; only the phone number is sensitive. Use --hide-names when the names
+ * themselves must not appear either.
+ */
+function ownerLabel(analysis, hideNames) {
+  if (hideNames) return '';
   return String(analysis.owner || '').trim();
 }
 
@@ -441,9 +447,9 @@ function renderRules(analysis) {
 ${extras.length ? `      <p class="foot-note">${extras.join('<span class="i18n-zh">・</span><span class="i18n-en"> &middot; </span>')}。</p>\n` : ''}`;
 }
 
-function renderAccountSection(analysis, index, redact) {
+function renderAccountSection(analysis, index, redact, hideNames) {
   const number = accountLabel(analysis, index, redact);
-  const owner = ownerLabel(analysis, redact);
+  const owner = ownerLabel(analysis, hideNames);
   // With an owner name the phone number becomes a quieter suffix.
   const heading = owner ? `${esc(owner)}<span class="acct-num">${esc(number)}</span>` : esc(number);
   const period = periodLabel(analysis);
@@ -481,9 +487,9 @@ ${renderRules(analysis)}
     </section>`;
 }
 
-function renderOverview(analyses, redact) {
+function renderOverview(analyses, redact, hideNames) {
   if (analyses.length < 2) return '';
-  const hasOwners = !redact && analyses.some((a) => String(a.owner || '').trim());
+  const hasOwners = !hideNames && analyses.some((a) => String(a.owner || '').trim());
   const totals = analyses.reduce(
     (acc, a) => ({
       mb: acc.mb + a.stats.totalMb,
@@ -562,8 +568,9 @@ function renderReport({
   sourceLabel = '',
   lang = DEFAULT_LANG,
   redact = false,
+  hideNames = false,
 }) {
-  const body = analyses.map((a, i) => renderAccountSection(a, i, redact)).join('\n');
+  const body = analyses.map((a, i) => renderAccountSection(a, i, redact, hideNames)).join('\n');
   const defaultLang = normalizeLang(lang) || DEFAULT_LANG;
 
   const onlyAccount = accountLabel(analyses[0], 0, redact);
@@ -615,7 +622,7 @@ ${STYLES}
     </div>
   </header>
   <div class="wrap">
-${renderOverview(analyses, redact)}
+${renderOverview(analyses, redact, hideNames)}
 ${body}
     <p class="page-foot">${bi(
       '此報告由 kogan-mobile-data-usage 自動產生・資料版權屬 Kogan Mobile・僅供個人用量分析參考',

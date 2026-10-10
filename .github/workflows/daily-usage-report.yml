@@ -98,7 +98,8 @@ jobs:
           # --no-save-raw keeps the fetched pages (which contain full phone numbers)
           # out of the workspace entirely.
           # --redact is mandatory here: this repository is public, so the committed
-          # report must not contain any phone number or owner name.
+          # report must not contain any phone number. The owner names are treated
+          # as public nicknames; add --hide-names as well if that is not wanted.
           node src/index.js --no-save-raw --redact --out out/usage-report.html 2>&1 | tee "${LOG_FILE}"
           # Keep a pristine copy. The commit step rebuilds the branch on top of the
           # newest remote commit, which would otherwise replace this file.
@@ -154,8 +155,7 @@ jobs:
         run: rm -f .env
 
       # The report is also published as a web page. Everything that reaches
-      # Pages went through --redact, so the site never contains a phone number
-      # or an owner name.
+      # Pages went through --redact, so the site never contains a phone number.
       - name: Build the Pages site
         run: |
           set -euo pipefail

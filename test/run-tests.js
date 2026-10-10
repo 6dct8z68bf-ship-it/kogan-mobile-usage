@@ -328,9 +328,9 @@ test('shows owner names when they are configured', () => {
   assert.ok(!withoutOwners.includes('姓名'), 'no owner column when no names are set');
 });
 
-test('redact mode hides phone numbers and owner names', () => {
-  const first = { ...analysis, scope: 'account-1', owner: 'OWNER-A' };
-  const second = { ...analysis, scope: 'account-2', account: '0499 999 999', owner: 'OWNER-B' };
+test('redact mode hides phone numbers but keeps the owner names', () => {
+  const first = { ...analysis, scope: 'account-1', owner: 'dad' };
+  const second = { ...analysis, scope: 'account-2', account: '0499 999 999', owner: 'mum' };
   const out = renderReport({
     analyses: [first, second],
     generatedAt: '2026-10-10 12:00 (Australia/Sydney)',
@@ -339,9 +339,22 @@ test('redact mode hides phone numbers and owner names', () => {
   });
   assert.ok(!out.includes('0400 000 001'), 'phone number must be hidden');
   assert.ok(!out.includes('0499 999 999'), 'second phone number must be hidden');
-  assert.ok(!out.includes('OWNER-A'), 'owner name must be hidden');
-  assert.ok(!out.includes('OWNER-B'), 'second owner name must be hidden');
+  assert.ok(out.includes('>dad<'), 'owner name kept as a label');
+  assert.ok(out.includes('>mum<'), 'second owner name kept');
   assert.ok(out.includes('Account 1') && out.includes('Account 2'), 'position based labels');
+});
+
+test('hide-names drops the owner names as well', () => {
+  const first = { ...analysis, scope: 'account-1', owner: 'dad' };
+  const out = renderReport({
+    analyses: [first],
+    generatedAt: '2026-10-10 12:00 (Australia/Sydney)',
+    settings: { mbBase: 1048576, minMb: 1, highlightMb: 50 },
+    redact: true,
+    hideNames: true,
+  });
+  assert.ok(!out.includes('dad'), 'owner name must be hidden');
+  assert.ok(out.includes('Account 1'), 'position label still used');
   assert.ok(!out.includes('姓名') && !out.includes('>Owner<'), 'no owner column');
 });
 
