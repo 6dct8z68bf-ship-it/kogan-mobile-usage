@@ -1,0 +1,139 @@
+name: Daily usage report
+
+on:
+  schedule:
+    # 20:00 UTC = 06:00 AEST, or 07:00 while daylight saving is in effect (Sydney).
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+
+# Only the report is written back, so read/write access to contents is enough.
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-usage-report
+  cancel-in-progress: false
+
+jobs:
+  report:
+    name: Fetch usage and render the report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          # Cookie handling relies on Headers.getSetCookie(), which needs Node 20+.
+          node-version: '22'
+
+      - name: Run the offline test suite
+        run: |
+          node --version
+          node -e "console.log('getSetCookie:', typeof new Headers().getSetCookie)"
+          npm test
+
+      # Credentials live in repository secrets and are written to .env only for the
+      # duration of the job. Nothing here echoes the values, the file is removed in
+      # the always-run step below, and .gitignore already excludes it.
+      - name: Write .env from secrets and variables
+        env:
+          SECRET_ACCOUNTS: ${{ secrets.KOGAN_ACCOUNTS }}
+          VAR_LANG: ${{ vars.KOGAN_LANG }}
+          VAR_MONTHS: ${{ vars.KOGAN_MONTHS }}
+          VAR_TYPE: ${{ vars.KOGAN_USAGE_TYPE }}
+          VAR_MIN_MB: ${{ vars.KOGAN_MIN_MB }}
+          VAR_HIGHLIGHT_MB: ${{ vars.KOGAN_HIGHLIGHT_MB }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SECRET_ACCOUNTS}" ]; then
+            echo "::error::Repository secret KOGAN_ACCOUNTS is not set."
+            exit 1
+          fi
+          umask 077
+          {
+            echo "KOGAN_ACCOUNTS=${SECRET_ACCOUNTS}"
+            echo "KOGAN_MONTHS=${VAR_MONTHS:-1}"
+            echo "KOGAN_USAGE_TYPE=${VAR_TYPE:-Data}"
+            echo "KOGAN_MIN_MB=${VAR_MIN_MB:-1}"
+            echo "KOGAN_HIGHLIGHT_MB=${VAR_HIGHLIGHT_MB:-50}"
+            echo "KOGAN_MB_BASE=1048576"
+            echo "KOGAN_LANG=${VAR_LANG:-en}"
+          } > .env
+          echo "wrote .env with $(wc -l < .env) settings"
+
+      - name: Generate the report
+        env:
+          LOG_FILE: ${{ runner.temp }}/usage-report.log
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          # --no-save-raw keeps the fetched pages (which contain full phone numbers)
+          # out of the workspace entirely.
+          # --redact is mandatory here: this repository is public, so the committed
+          # report must not contain any phone number or owner name.
+          node src/index.js --no-save-raw --redact --out out/usage-report.html 2>&1 | tee "${LOG_FILE}"
+
+      - name: Upload the report as an artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: usage-report
+          path: out/usage-report.html
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Commit the report
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add out/usage-report.html
+          if git diff --cached --quiet; then
+            echo "Report unchanged since the last run; nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore: usage report $(date -u +%Y-%m-%d)"
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+          git push
+
+      - name: Remove the generated .env
+        if: always()
+        run: rm -f .env
+
+      # The report is also published as a web page. Everything that reaches
+      # Pages went through --redact, so the site never contains a phone number
+      # or an owner name.
+      - name: Build the Pages site
+        run: |
+          set -euo pipefail
+          mkdir -p pages
+          cp out/usage-report.html pages/index.html
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+        with:
+          # Creates the Pages site on the first run instead of failing.
+          enablement: true
+
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: pages
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: report
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

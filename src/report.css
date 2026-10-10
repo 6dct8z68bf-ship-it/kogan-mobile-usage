@@ -1,0 +1,211 @@
+:root {
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --ink: #15171c;
+  --muted: #6b7280;
+  --line: #e4e7ec;
+  --line-strong: #cfd4dc;
+  --accent: #d81f36;
+  --accent-soft: #fdecef;
+  --high-bg: #fff4f4;
+  --high-line: #e5484d;
+  --ok: #0f766e;
+  --ok-bg: #ecfdf5;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .05);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 0 0 64px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+a { color: var(--accent); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+/* ---------------------------------------------------------------
+   Language switching.
+   Every translatable element carries both languages; the stylesheet
+   reveals the one that matches data-lang on <html>, so the report
+   switches without re-rendering and still works without JavaScript.
+   --------------------------------------------------------------- */
+.i18n-en { display: none; }
+html[data-lang="en"] .i18n-zh { display: none; }
+html[data-lang="en"] .i18n-en { display: inline; }
+
+.page-head .wrap { position: relative; }
+.lang-switch { position: absolute; top: 2px; right: 20px; display: flex; gap: 6px; }
+.lang-switch button {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  padding: 4px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .35);
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+}
+.lang-switch button:hover { background: rgba(255, 255, 255, .22); }
+.lang-switch button.active { background: #fff; border-color: #fff; color: #1b1d23; }
+@media (max-width: 720px) {
+  .lang-switch { position: static; justify-content: flex-end; margin-bottom: 12px; }
+}
+
+.page-head {
+  background: linear-gradient(135deg, #1b1d23 0%, #2b2f3a 60%, #3a2026 100%);
+  color: #fff;
+  padding: 28px 0 24px;
+  margin-bottom: 26px;
+}
+.page-head h1 { margin: 0 0 6px; font-size: 25px; letter-spacing: .3px; font-weight: 650; }
+.page-head .meta { color: #cbd0d8; font-size: 13.5px; }
+.page-head .meta strong { color: #fff; font-weight: 600; }
+.page-head .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.page-head .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.page-head .brand .txt { letter-spacing: 2.4px; font-size: 12px; color: #d7dbe2; text-transform: uppercase; }
+
+section.account {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 22px 22px 26px;
+  margin-bottom: 26px;
+}
+.account-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+.account-head h2 { margin: 0; font-size: 21px; font-weight: 650; }
+.account-head h2 .acct-num { font-size: 15px; font-weight: 500; color: var(--muted); margin-left: 10px; letter-spacing: .3px; }
+.account-sub { color: var(--muted); font-size: 13px; margin: 2px 0 18px; }
+
+.pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f1f2f5;
+  border: 1px solid var(--line-strong);
+  color: #3f4653;
+  font-size: 12.5px;
+  font-weight: 550;
+}
+.pill--accent { background: var(--accent-soft); border-color: #f6c9d0; color: #a2162a; }
+
+.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
+@media (max-width: 900px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 13px 14px; background: #fcfcfd; }
+.card .label { font-size: 12px; color: var(--muted); letter-spacing: .2px; margin-bottom: 5px; }
+.card .value { font-size: 21px; font-weight: 650; line-height: 1.25; }
+.card .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.card--high { background: var(--high-bg); border-color: #f6c9cb; }
+.card--high .value { color: #b42318; }
+.card--ok { background: var(--ok-bg); border-color: #bbf7d0; }
+.card--ok .value { color: var(--ok); }
+
+h3.block-title { font-size: 15px; margin: 24px 0 10px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+h3.block-title::before { content: ""; width: 4px; height: 15px; border-radius: 2px; background: var(--accent); }
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fcfcfd;
+}
+.chart-row { display: grid; grid-template-columns: 74px 1fr 116px; align-items: center; gap: 10px; font-size: 13px; }
+.chart-date { color: #3f4653; font-variant-numeric: tabular-nums; }
+.chart-track { background: #eceef2; border-radius: 5px; height: 14px; overflow: hidden; }
+.chart-bar { display: block; height: 100%; background: linear-gradient(90deg, #4b5563, #6b7280); border-radius: 5px; min-width: 3px; }
+.chart-bar.is-high { background: linear-gradient(90deg, #d81f36, #ef5b6d); }
+.chart-val { text-align: right; color: #3f4653; font-variant-numeric: tabular-nums; }
+.chart-val em { color: var(--high-line); font-style: normal; font-size: 12px; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 10px; }
+.toolbar button {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 1px solid var(--line-strong);
+  background: #fff;
+  color: #3f4653;
+}
+.toolbar button.active { background: #1b1d23; border-color: #1b1d23; color: #fff; }
+.toolbar .spacer { flex: 1 1 auto; }
+.toolbar .count { color: var(--muted); font-size: 12.5px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.table-shell { border: 1px solid var(--line); border-radius: 10px; overflow: auto; max-height: 72vh; }
+th, td { padding: 8px 11px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f7f8fa;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  color: #55606f;
+  font-weight: 650;
+  border-bottom: 1px solid var(--line-strong);
+}
+tbody tr:hover { background: #fafbfc; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.mono { font-variant-numeric: tabular-nums; color: #3f4653; }
+td.strong { font-weight: 620; }
+
+tr.row-high { background: var(--high-bg); }
+tr.row-high:hover { background: #ffecec; }
+tr.row-high td:first-child { box-shadow: inset 4px 0 0 var(--high-line); }
+
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 650;
+  background: var(--high-line);
+  color: #fff;
+  letter-spacing: .2px;
+}
+.badge--muted { background: #eceef2; color: #6b7280; font-weight: 550; }
+
+.bar-cell { width: 132px; padding-right: 14px; }
+.mini-track { display: block; background: #eceef2; border-radius: 4px; height: 9px; overflow: hidden; }
+.mini-bar { display: block; height: 100%; background: #9aa2ae; border-radius: 4px; min-width: 2px; }
+.mini-bar.is-high { background: linear-gradient(90deg, #d81f36, #ef5b6d); }
+
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 10px; }
+.rule { border: 1px dashed var(--line-strong); border-radius: 9px; padding: 10px 12px; font-size: 13px; background: #fcfcfd; }
+.rule .k { color: var(--muted); font-size: 12px; display: block; margin-bottom: 2px; }
+.rule .v { font-weight: 600; }
+.rule .note { color: var(--muted); font-size: 12px; margin-top: 3px; }
+.check { color: var(--ok); font-weight: 600; }
+.check--warn { color: #b42318; font-weight: 600; }
+
+.foot-note { color: var(--muted); font-size: 12.5px; margin: 14px 0 0; }
+.page-foot { color: var(--muted); font-size: 12px; text-align: center; margin-top: 26px; }
+.empty { padding: 18px; color: var(--muted); font-size: 13.5px; }
+
+@media print {
+  body { background: #fff; padding: 0; font-size: 12px; }
+  section.account { box-shadow: none; border-color: #ccc; break-inside: avoid-page; page-break-inside: avoid; }
+  .toolbar { display: none; }
+  .lang-switch { display: none; }
+  .table-shell { max-height: none; overflow: visible; }
+  thead th { position: static; }
+  tr.row-high, .chart-bar, .mini-bar, .badge {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

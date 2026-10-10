@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<!--[if IE 8 ]> <html class="ie8"> <![endif]-->
+<!--[if IE 9 ]> <html class="ie9"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)-->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!--<![endif-->
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <title>Secure PIN Entry</title>
+    <!--<script type="text/javascript" src="/js/jquery-1.10.2.min.js"></script>-->
+    <script type="text/javascript" src="/js/jquery-3.6.1.min.js"></script>
+    <script src="/js/jquery.fittext.js?v=3.15.3" type="text/javascript"></script>
+    <link href="/css/km/layout4/css/fonts.css?v=3.15.3" rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="/css/km/plugins/font-awesome/css/font-awesome.css?v=3.15.3" />
+    <link rel="stylesheet" href="/css/km/plugins/simple-line-icons/simple-line-icons.min.css?v=3.15.3" />
+    <link rel="stylesheet" href="/css/km/plugins/bootstrap/css/bootstrap.min.css?v=3.15.3" />
+    <link rel="stylesheet" href="/css/km/plugins/uniform/css/uniform.default.css?v=3.15.3" />
+    <link rel="stylesheet" href="/css/km/plugins/bootstrap-switch/css/bootstrap-switch.min.css?v=3.15.3" />
+    <link href="/css/km/css/components-md.css?v=3.15.3" id="style_components" rel="stylesheet" type="text/css" />
+    <link href="/css/km/css/plugins-md.css?v=3.15.3" rel="stylesheet" type="text/css" />
+    <link href="/css/km/layout4/css/layout.css?v=3.15.3" rel="stylesheet" type="text/css" />
+    <link id="style_color" href="/css/km/layout4/css/themes/light.css?v=3.15.3" rel="stylesheet" type="text/css" />
+    <link href="/css/km/layout4/css/custom.css?v=3.15.3" rel="stylesheet" type="text/css" />
+    <link href="/css/main.css?v=3.15.3" rel="stylesheet" type="text/css" />
+    <link href="/css/address-autocomplete.css?v=3.15.3" rel="stylesheet" type="text/css" />
+    <link rel="shortcut icon" href="/images/favicon_kgn.ico" type="image/x-icon" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet">
+    <!--[if lt IE 10]>
+    <script src="/js/html5shiv.js?v=3.15.3"></script>
+    <![endif]-->
+    <style type="text/css">
+        div.receipt__body>strong {
+            display: none;
+        }
+    </style>
+    <!-- Captures any uncaught errors -->
+    <script type="text/javascript">
+        function logThis(msg) {
+            
+            msisdn = '';
+            msg = 'msisdn (' + msisdn + ') ' + msg;
+            console.log(msg);
+            $.ajax({
+                async: false,
+                url: "/logthis",
+                data: {
+                    "msg": msg,
+                    "csrfToken": '0000000000000000000000000000000000000000000000000000000000000000'
+                },
+                cache: false,
+                type: "POST",
+                success: function(response, status) {
+                    return true;
+                },
+                error: function(xhr, status) {
+                    return false;
+                }
+            });
+            
+        }
+        window.onerror = function(msg, url, line, col, error) {
+            logThis('ERROR: msg(' + msg + ') line(' + line + ') col(' + col + ') error(' + error + ')');
+        };
+    </script>
+</head>
+<body id="login" class="guest l-kogan-v2">
+    <script>
+        //
+        function PopupCenter(url, title, w, h) {
+            // Fixes dual-screen position                         Most browsers      Firefox
+            var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
+            var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
+            width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+            height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+            var left = ((width / 2) - (w / 2)) + dualScreenLeft;
+            var top = ((height / 2) - (h / 2)) + dualScreenTop;
+            var newWindow = window.open(url, title, 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
+            // Puts focus on the newWindow
+            if (window.focus) {
+                newWindow.focus();
+            }
+        }
+        //
+    </script>
+    <div class="page-header-fixed">
+        <div class="page-header md-shadow-z-1-i navbar" id="primary-navbar">
+            <div class="page-header-inner">
+                <a class="menu-toggler responsive-toggler" data-toggle="collapse" data-target=".navbar-collapse"> </a>
+                <div class="page-logo">
+                    
+                    <a href="https://www.koganmobile.com.au/" target="_blank"><img src="/images/logo_kgn.png" alt="Kogan Mobile" class="logo-default"/></a>
+                    
+                    <h3 class="page-header__title">ACCOUNT</h3>
+                </div>
+                <div class="page-top">
+                    <div class="top-menu">
+                        <ul class="nav navbar-nav pull-right">
+                            
+                            <li><a class="nav__item nav__item--purple" href="/activation">Activate New Sim</a></li>
+                            
+                            <li class="separator hide"> </li>
+                            <li><a class="nav__item nav__item--purple" href="https://help.koganmobile.com.au/" target="_blank">Help</a></li>
+                            <li class="separator hide"> </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <nav id="primary-nav" class="col-md-3 no-items">
+                <div class="page-sidebar-wrapper">
+                    <div class="page-sidebar md-shadow-z-2-i navbar-collapse collapse">
+                        <ul class="page-sidebar-menu" data-keep-expanded="false" data-auto-scroll="true" data-slide-speed="200">
+                            
+                            <li><a class="summary-link" href="/activation">
+                                <span class="title title--leftspace">Activate New Sim</span>
+                            </a></li>
+                            
+                            <li><a class="summary-link" href="https://help.koganmobile.com.au/" target="_blank">
+                                <span class="title title--leftspace">Help</span>
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <div id="section-container" class="col-md-12">
+    <header id="section-heading">
+        
+    </header>
+    <div class="section-content">
+        <div class="row">
+            <div class="col-md-12">
+                <section id="content">
+                    <div class="row">
+                        <div class="login__modal">
+                            <div class="portlet light">
+                                <div class="portlet-title">
+                                    <div class="form__title-wrapper">
+                                        <h1 class="form__title">Sign In to your Kogan Mobile or Internet Account</h1>
+                                    </div>
+                                </div>
+                                <div class="portlet-body form">
+                                    <form action="login" accept-charset="ISO-8859-1" method="post" id="login-form" name="login-form">
+                                        <input type="hidden" name="csrfToken" value="0000000000000000000000000000000000000000000000000000000000000000">
+                                        <fieldset class="form-body">
+                                            <div id="username_container" class="form-group form-md-line-input cg">
+                                                <input id="login-form-username" class="form-control strip-space" name="user_name" type="tel" maxlength="14" tabindex="1" inputmode="numeric" pattern="[0-9]*" placeholder="e.g. 0400000000" />
+                                                <p class="error"></p>
+                                                <label for="login-form-username">Mobile, Service or Account Number</label>
+                                            </div>
+                                            <div id="password_container" class="form-group form-md-line-input cg">
+                                                <input id="login-form-password" class="form-control input--password" name="user_password" type="tel" maxlength="6" tabindex="2" inputmode="numeric" pattern="[0-9]*" placeholder="******" autocomplete="off" />
+                                                <p class="error"></p>
+                                                <label for="login-form-password">PIN</label>
+                                            </div>
+                                            <div id="login-form-buttons" class="cg">
+                                                <input id="submit" type="submit" value="SIGN IN" tabindex="3" class="btn--large btn btn--red col-md-12 col-sm-12 col-xs-12" />
+                                            </div>
+                                        </fieldset>
+                                    </form>
+                                    <p class="text-center">
+                                        <a href="/customer/forgotten-pin" class="link--blue">Forgot your PIN? Reset your PIN here</a>
+                                    </p>
+                                    
+                                    <div id="login-form-buttons"  class="express_recharge">
+                                        <input type="button" value="EXPRESS RECHARGE"   class="btn--large btn btn--red col-md-12 col-sm-12 col-xs-12" onclick="window.location.href='/recharge'" />
+                                    </div>
+                                    
+                                    <div class="form__new-customer">
+                                        <h1 class="form__title">NEW CUSTOMER?</h1>
+                                        <p class="form__text text-center">
+                                            <a href="/activation" class="link--blue">Activate your SIM</a> or
+                                            <a href="https://www.koganmobile.com.au/" class="link--blue">Order a new SIM online.</a>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>
+
+            </div>
+            </div>
+            <script src="/css/km/js/jquery-migrate.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/plugins/jquery-ui/jquery-ui.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/plugins/bootstrap/js/bootstrap.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/plugins/bootstrap-hover-dropdown/bootstrap-hover-dropdown.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/plugins/jquery-slimscroll/jquery.slimscroll.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/js/jquery.blockui.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/js/jquery.cokie.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/plugins/uniform/jquery.uniform.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/plugins/bootstrap-switch/js/bootstrap-switch.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/plugins/jquery-easypiechart/jquery.easypiechart.min.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/js/metronic.js?v=3.15.3" type="text/javascript"></script>
+            <script src="/css/km/layout4/scripts/layout.js?v=3.15.3" type="text/javascript"></script>
+            <script type="text/javascript" src="/js/site.js?v=3.15.3"></script>
+            <script type="text/javascript" src="/css/km/js/custom.js?v=3.15.3"></script>
+            <script type="text/javascript" src="/css/km/js/moment.min.js?v=3.15.3"></script>
+            <script>
+                jQuery(document).ready(function() {
+                    // initiate layout and plugins
+                    Metronic.init(); // init metronic core components
+                    Layout.init(); // init current layout
+                });
+                $('.easy-pie-chart .number.bounce').each(function(index, chart) {
+                    $(chart).easyPieChart({
+                        animate: 1000,
+                        size: 120,
+                        lineCap: 'butt',
+                        lineWidth: chart.getAttribute('data-line-width') || 24,
+                        scaleColor: false,
+                        barColor: chart.getAttribute('data-color') || Metronic.getBrandColor('red')
+                    });
+                });
+            </script>
+            <noscript>
+            <iframe src="//www.googletagmanager.com/ns.html?id=GTM-KGKPVQ" height="0" width="0" style="display:none;visibility:hidden"/>
+        </noscript>
+            <script>
+                //
+                (function(w, d, s, l, i) {
+                    w[l] = w[l] || [];
+                    w[l].push({
+                        'gtm.start': new Date().getTime(),
+                        event: 'gtm.js'
+                    });
+                    var f = d.getElementsByTagName(s)[0],
+                        j = d.createElement(s),
+                        dl = l != 'dataLayer' ? '&amp;l=' + l : '';
+                    j.async = true;
+                    j.src =
+                        '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+                    f.parentNode.insertBefore(j, f);
+                })(window, document, 'script', 'dataLayer', 'GTM-KGKPVQ');
+                //
+            </script>
+            
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Normalise line endings in the repository so the same content is stored no
+# matter which platform checked it out.
+* text=auto eol=lf
+
+# Windows batch files must keep CRLF endings; cmd.exe can mis-parse LF-only
+# files that use labels and goto.
+*.cmd text eol=crlf
+
+# Binary assets should never be normalised.
+*.png binary

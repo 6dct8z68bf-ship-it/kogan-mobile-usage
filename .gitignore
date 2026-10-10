@@ -1,0 +1,9 @@
+node_modules/
+.env
+# Everything under out/ is local build output, except the report the daily
+# workflow commits back into the repository.
+out/*
+!out/usage-report.html
+*.log
+# Staging directory the workflow copies the report into before publishing Pages.
+pages/

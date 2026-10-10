@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<!-- saved from url=(0049)https://accounts.koganmobile.com.au/service/usage -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><!--<![endif--><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>Usage History</title>
+    <!--<script type="text/javascript" src="/js/jquery-1.10.2.min.js"></script>-->
+    <script type="text/javascript" async="" src="./Usage History_files/js"></script><script type="text/javascript" async="" src="./Usage History_files/analytics.js.download"></script><script async="" src="./Usage History_files/gtm.js.download"></script><script type="text/javascript" src="./Usage History_files/jquery-3.6.1.min.js.download"></script>
+    <script src="./Usage History_files/jquery.fittext.js.download" type="text/javascript"></script>
+    <link href="./Usage History_files/fonts.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="./Usage History_files/font-awesome.css">
+    <link rel="stylesheet" href="./Usage History_files/simple-line-icons.min.css">
+    <link rel="stylesheet" href="./Usage History_files/bootstrap.min.css">
+    <link rel="stylesheet" href="./Usage History_files/uniform.default.css">
+    <link rel="stylesheet" href="./Usage History_files/bootstrap-switch.min.css">
+    <link href="./Usage History_files/components-md.css" id="style_components" rel="stylesheet" type="text/css">
+    <link href="./Usage History_files/plugins-md.css" rel="stylesheet" type="text/css">
+    <link href="./Usage History_files/layout.css" rel="stylesheet" type="text/css">
+    <link id="style_color" href="./Usage History_files/light.css" rel="stylesheet" type="text/css">
+    <link href="./Usage History_files/custom.css" rel="stylesheet" type="text/css">
+    <link href="./Usage History_files/main.css" rel="stylesheet" type="text/css">
+    <link href="./Usage History_files/address-autocomplete.css" rel="stylesheet" type="text/css">
+    <link rel="shortcut icon" href="https://accounts.koganmobile.com.au/images/favicon_kgn.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com/">
+    <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="">
+    <link href="./Usage History_files/css2" rel="stylesheet">
+    <!--[if lt IE 10]>
+    <script src="/js/html5shiv.js?v=3.15.3"></script>
+    <![endif]-->
+    <style type="text/css">
+        div.receipt__body>strong {
+            display: none;
+        }
+    </style>
+    <!-- Captures any uncaught errors -->
+    <script type="text/javascript">
+        function logThis(msg) {
+            
+            msisdn = '';
+            msg = 'msisdn (' + msisdn + ') ' + msg;
+            console.log(msg);
+            $.ajax({
+                async: false,
+                url: "/logthis",
+                data: {
+                    "msg": msg,
+                    "csrfToken": '0000000000000000000000000000000000000000000000000000000000000000'
+                },
+                cache: false,
+                type: "POST",
+                success: function(response, status) {
+                    return true;
+                },
+                error: function(xhr, status) {
+                    return false;
+                }
+            });
+            
+        }
+        window.onerror = function(msg, url, line, col, error) {
+            logThis('ERROR: msg(' + msg + ') line(' + line + ') col(' + col + ') error(' + error + ')');
+        };
+    </script>
+</head>
+<body id="usageHistory" class=" l-kogan-v2">
+    <script>
+        //
+        function PopupCenter(url, title, w, h) {
+            // Fixes dual-screen position                         Most browsers      Firefox
+            var dualScreenLeft = window.screenLeft != undefined ? window.screenLeft : screen.left;
+            var dualScreenTop = window.screenTop != undefined ? window.screenTop : screen.top;
+            width = window.innerWidth ? window.innerWidth : document.documentElement.clientWidth ? document.documentElement.clientWidth : screen.width;
+            height = window.innerHeight ? window.innerHeight : document.documentElement.clientHeight ? document.documentElement.clientHeight : screen.height;
+            var left = ((width / 2) - (w / 2)) + dualScreenLeft;
+            var top = ((height / 2) - (h / 2)) + dualScreenTop;
+            var newWindow = window.open(url, title, 'scrollbars=yes, width=' + w + ', height=' + h + ', top=' + top + ', left=' + left);
+            // Puts focus on the newWindow
+            if (window.focus) {
+                newWindow.focus();
+            }
+        }
+        //
+    </script>
+    <div class="page-header-fixed">
+        <div class="page-header md-shadow-z-1-i navbar" id="primary-navbar">
+            <div class="page-header-inner">
+                <a class="menu-toggler responsive-toggler" data-toggle="collapse" data-target=".navbar-collapse"> </a>
+                <div class="page-logo">
+                    
+                    <a href="https://www.koganmobile.com.au/" target="_blank"><img src="./Usage History_files/logo_kgn.png" alt="Kogan Mobile" class="logo-default"></a>
+                    
+                    <h3 class="page-header__title">ACCOUNT</h3>
+                </div>
+                <div class="page-top">
+                    <div class="top-menu">
+                        <ul class="nav navbar-nav pull-right">
+                            
+                            
+                            <li class="separator hide"> </li>
+                            <li><a class="nav__item nav__item--purple" href="https://help.koganmobile.com.au/" target="_blank">Help</a></li>
+                            <li class="separator hide"> </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <nav id="primary-nav" class="col-md-3 has-items">
+                <div class="page-sidebar-wrapper">
+                    <div class="page-sidebar md-shadow-z-2-i navbar-collapse collapse">
+                        <ul class="page-sidebar-menu" data-keep-expanded="false" data-auto-scroll="true" data-slide-speed="200">
+                            
+                            <script type="text/javascript">
+jQuery(document).ready(function () {
+});
+</script>
+<li>
+    <a class="summary-link" id="summary-link" href="https://accounts.koganmobile.com.au/customer/summary">
+        <img src="./Usage History_files/account.png">
+        
+        <span class="title title--leftspace">Account Summary</span>
+    </a>
+</li>
+<li>
+    <a class="summary-link-selected" id="usageHistory-link" href="https://accounts.koganmobile.com.au/service/usage">
+        <img src="./Usage History_files/usage.png">
+        
+        <span class="title title--leftspace">Usage History</span>
+    </a>
+</li>
+<li>
+    <a class="summary-link" id="recharge-link" href="https://accounts.koganmobile.com.au/service/recharge/recharge-cc-stage1">
+        <img src="./Usage History_files/recharge.png">
+        
+        <span class="title title--leftspace">Recharge</span>
+    </a>
+</li>
+<li>
+    <a class="summary-link" id="scheduleRecharge-link" href="https://accounts.koganmobile.com.au/service/recharge/schedule">
+        <img src="./Usage History_files/billing.png">
+        
+        <span class="title title--leftspace">Payment Methods</span>
+    </a>
+</li>
+<li>
+    <a class="summary-link" id="rechargeHistory-link" href="https://accounts.koganmobile.com.au/service/recharge/history">
+        <img src="./Usage History_files/recharge_history.png">
+        
+        <span class="title title--leftspace">Recharge History</span>
+    </a>
+</li>
+<li>
+    <a class="summary-link" id="customerDetails-link" href="https://accounts.koganmobile.com.au/customer">
+        <img src="./Usage History_files/customer.png">
+        
+        <span class="title title--leftspace">Customer Details</span>
+    </a>
+</li>
+<li>
+    <a class="summary-link" id="changePIN-link" href="https://accounts.koganmobile.com.au/customer/change_pin">
+        <img src="./Usage History_files/pin.png">
+        
+        <span class="title title--leftspace">Change PIN</span>
+    </a>
+</li>
+<li>
+    <a class="summary-link" id="logout-link" href="https://accounts.koganmobile.com.au/customer/logout">
+        
+        <span class="title title--leftspace">Logout</span>
+    </a>
+</li>
+
+                            
+                            <li><a class="summary-link" href="https://help.koganmobile.com.au/" target="_blank">
+                                <span class="title title--leftspace">Help</span>
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+            <div id="section-container" class="col-md-9">
+    <section id="content">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="portlet box kogan--purple">
+                    <div xmlns:exsl="http://exslt.org/common" class="portlet-title">
+                        <h3>Usage History</h3>
+                        <h4 class="portlet__customer">
+                            <span class="portlet__mobile">0400 000 001 </span>
+                        </h4>
+                    </div>
+                    <div class="portlet-body">
+                        <div class="row">
+                            <div class="col-md-6 col-sm-8 col-xs-12">
+                                <form action="https://accounts.koganmobile.com.au/service/usage" accept-charset="ISO-8859-1" method="post" id="usage-history-form">
+                                    <input type="hidden" name="csrfToken" value="0000000000000000000000000000000000000000000000000000000000000000">
+                                    <fieldset class="form-body">
+                                        <div id="type_container" class="form-group form-md-line-input has-info cg">
+                                            <select id="usage-history-form-type" name="usage-history-form[type]" tabindex="1" class="form-control">
+                                                    <option value="All" selected="">All</option>
+                                                    <option value="SMSMMS"> SMS / MMS </option>
+                                                    <option value="Data">Data </option>
+                                                    <option value="Calls"> Voice </option>
+                                                </select>
+                                            <label for="usage-history-form-type">Usage type</label>
+                                        </div>
+                                        <div id="months_container" class="form-group form-md-line-input has-info cg">
+                                            <select id="usage-history-form-months" name="usage-history-form[months]" tabindex="2" class="form-control">
+                                                    <option value="1" selected="">Month</option>
+                                                    <option value="3">3 Months </option>
+                                                    <option value="6">6 Months</option>
+													<!-- ms-1051 -->
+                                                    <!--option value="12" >Year</option-->
+                                                </select>
+                                            <label for="usage-history-form-months">Your usage in the last</label>
+                                        </div>
+                                        <div id="usage-history-form-buttons" class="cg">
+                                            <div class="form-group">
+                                                <input id="submit" type="submit" value="search" tabindex="3" class="btn btn--red col-sm-3 col-md-4 col-xs-12 btn--unfloat">
+                                            </div>
+                                        </div>
+                                    </fieldset>
+                                </form>
+                            </div>
+                            <div id="usage-history-note" class="col-md-6 col-sm-4 col-xs-12">
+                                <div class="well">
+                                    <h4> PLEASE NOTE: </h4>
+                                    Usage shown here is indicative only, based on data recorded in our systems at the time of viewing. That data may not be correct and current, even though we take due care to update it regularly.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="table-scrollable">
+            <table id="service-usage-history" class="table table-striped">
+                <thead>
+                    <tr><th>Date</th>
+                    <th>Time</th>
+                    <th>Type</th>
+                    <th>Country</th>
+                    <th>Number</th>
+                    <th>Duration/MB</th>
+                    <th>Charged</th>
+                </tr></thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>16:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>965632 B</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>15:27:14</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000001</td>
+                        <td>00:03</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>15:25:00</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000002</td>
+                        <td>00:02</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>15:23:38</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000002</td>
+                        <td>00:01</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>15:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>8.32 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>14:36:42</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000003</td>
+                        <td>00:03</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>14:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>82.18 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>13:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>181.47 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>12:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>9.20 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>11:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>39.76 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>10:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>22.64 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>09:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>254.16 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>08:47:51</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000003</td>
+                        <td>00:04</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>09/10/2026</td>
+                        <td>08:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>8.93 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>17:03:35</td>
+                        <td>National</td>
+                        <td>Australia</td>
+                        <td>61400000004</td>
+                        <td>03:00</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>15:25:37</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000002</td>
+                        <td>00:23</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>15:20:08</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000002</td>
+                        <td>00:15</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>15:19:58</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000002</td>
+                        <td>00:04</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>15:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>319488 B</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>13:02:57</td>
+                        <td>SMS (SMS Normal Delivery)</td>
+                        <td>Australia</td>
+                        <td>61400000001</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>12:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>1024 B</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>11:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>716800 B</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>09:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>7168 B</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>08/10/2026</td>
+                        <td>08:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>14.45 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>23:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>18432 B</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>17:44:54</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000001</td>
+                        <td>00:01</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>16:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>214.62 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>15:31:24</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000002</td>
+                        <td>00:06</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>15:30:57</td>
+                        <td>SMS (SMS Normal Delivery)</td>
+                        <td>Australia</td>
+                        <td>61400000001</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>15:30:57</td>
+                        <td>SMS (Delivery Report)</td>
+                        <td>Australia</td>
+                        <td>Delivery Report</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>15:25:44</td>
+                        <td>SMS (SMS Normal Delivery)</td>
+                        <td>Australia</td>
+                        <td>61400000002</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>15:25:35</td>
+                        <td>SMS (SMS Normal Delivery)</td>
+                        <td>Australia</td>
+                        <td>61400000001</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>15:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>42.48 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>07/10/2026</td>
+                        <td>11:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>6144 B</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>23:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>8192 B</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>21:49:47</td>
+                        <td>SMS (SMS Normal Delivery)</td>
+                        <td>Australia</td>
+                        <td>61400000001</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>21:49:09</td>
+                        <td>SMS (SMS Normal Delivery)</td>
+                        <td>Australia</td>
+                        <td>61400000001</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>21:47:30</td>
+                        <td>SMS (SMS Normal Delivery)</td>
+                        <td>Australia</td>
+                        <td>61400000001</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>20:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>14.47 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>19:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>47.03 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>18:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>17.53 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>17:43:01</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000003</td>
+                        <td>00:31</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>17:33:23</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000003</td>
+                        <td>00:20</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>17:16:54</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000003</td>
+                        <td>00:21</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>17:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>25.97 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>16:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>4.62 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>15:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>16.11 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>14:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>1.91 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>13:54:56</td>
+                        <td>Australia Mobile</td>
+                        <td>Australia</td>
+                        <td>61400000003</td>
+                        <td>00:02</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>13:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>18.89 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>12:47:00</td>
+                        <td>National</td>
+                        <td>Australia</td>
+                        <td>61400000004</td>
+                        <td>01:50</td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>12:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>3.51 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>11:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>8.91 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>10:00:00</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>3.78 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>09:05:46</td>
+                        <td>SMS (SMS Normal Delivery)</td>
+                        <td>Australia</td>
+                        <td>61400000005</td>
+                        <td></td>
+                        <td>$0.00</td>
+                    </tr>
+                    <tr>
+                        <td>06/10/2026</td>
+                        <td>09:05:32</td>
+                        <td>Domestic Data</td>
+                        <td>Australia</td>
+                        <td>Internet</td>
+                        <td>62.29 MB</td>
+                        <td>From Pack</td>
+                    </tr>
+                    
+                    
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Charged:</th>
+                        <th colspan="5">
+                            
+                            SMS: 9
+                            
+                            
+                            
+                            Data: 1105.16 MB</th>
+                        
+                        <th>$0.00</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+</div>
+
+            </div>
+            </div>
+            <script src="./Usage History_files/jquery-migrate.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/jquery-ui.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/bootstrap.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/bootstrap-hover-dropdown.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/jquery.slimscroll.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/jquery.blockui.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/jquery.cokie.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/jquery.uniform.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/bootstrap-switch.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/jquery.easypiechart.min.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/metronic.js.download" type="text/javascript"></script>
+            <script src="./Usage History_files/layout.js.download" type="text/javascript"></script>
+            <script type="text/javascript" src="./Usage History_files/site.js.download"></script>
+            <script type="text/javascript" src="./Usage History_files/custom.js.download"></script>
+            <script type="text/javascript" src="./Usage History_files/moment.min.js.download"></script>
+            <script>
+                jQuery(document).ready(function() {
+                    // initiate layout and plugins
+                    Metronic.init(); // init metronic core components
+                    Layout.init(); // init current layout
+                });
+                $('.easy-pie-chart .number.bounce').each(function(index, chart) {
+                    $(chart).easyPieChart({
+                        animate: 1000,
+                        size: 120,
+                        lineCap: 'butt',
+                        lineWidth: chart.getAttribute('data-line-width') || 24,
+                        scaleColor: false,
+                        barColor: chart.getAttribute('data-color') || Metronic.getBrandColor('red')
+                    });
+                });
+            </script>
+            <noscript>
+            <iframe src="//www.googletagmanager.com/ns.html?id=GTM-KGKPVQ" height="0" width="0" style="display:none;visibility:hidden"/>
+        </noscript>
+            <script>
+                //
+                (function(w, d, s, l, i) {
+                    w[l] = w[l] || [];
+                    w[l].push({
+                        'gtm.start': new Date().getTime(),
+                        event: 'gtm.js'
+                    });
+                    var f = d.getElementsByTagName(s)[0],
+                        j = d.createElement(s),
+                        dl = l != 'dataLayer' ? '&amp;l=' + l : '';
+                    j.async = true;
+                    j.src =
+                        '//www.googletagmanager.com/gtm.js?id=' + i + dl;
+                    f.parentNode.insertBefore(j, f);
+                })(window, document, 'script', 'dataLayer', 'GTM-KGKPVQ');
+                //
+            </script>
+            
+
+
+<div id="give-freely-root-kkkbiiikppgjdiebcabomlbidfodipjg" class="give-freely-root" data-extension-id="kkkbiiikppgjdiebcabomlbidfodipjg" data-extension-name="Substital: Add subtitles to videos and movies" style="display: block;"><template shadowrootmode="open"><style>
+  :host {
+    all: initial;
+  }
+
+  .gf-scroll-remove::-webkit-scrollbar {
+    border-radius-bottom-right: 15px;
+  }
+
+  button {
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+
+  button:active {
+    transform: scale(0.98);
+  }
+
+  .give-freely-close-button:hover {
+    opacity: 0.7;
+  }
+
+  input[type="radio"] {
+    margin-right: 8px;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid #e5e5e5;
+    margin: 1em 0;
+  }
+
+  dialog::backdrop  {
+    background-color: rgba(180, 180, 180, 0.8);
+  }
+
+  dialog.backdrop-hidden::backdrop  {
+    background-color: transparent;
+  }
+</style><div><div class="gf-app"></div></div></template></div></body></html>

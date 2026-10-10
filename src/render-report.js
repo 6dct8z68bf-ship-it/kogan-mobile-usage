@@ -1,0 +1,633 @@
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+const { DEFAULT_LANG, normalizeLang } = require('./i18n');
+
+const STYLES = fs.readFileSync(path.join(__dirname, 'report.css'), 'utf8');
+
+function esc(value) {
+  return String(value === null || value === undefined ? '' : value).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[ch]);
+}
+
+/**
+ * Emit both languages inside one element. The stylesheet shows only the
+ * variant matching the `data-lang` attribute on <html>, so switching language
+ * needs no re-render and keeps working when JavaScript is unavailable.
+ */
+function bi(zh, en) {
+  return `<span class="i18n-zh">${esc(zh)}</span><span class="i18n-en">${esc(en)}</span>`;
+}
+
+function fmtMb(mb, digits = 2) {
+  const value = Number(mb) || 0;
+  if (value >= 1000) return `${(value / 1000).toFixed(digits)} GB`;
+  return `${value.toFixed(digits)} MB`;
+}
+
+function fmtNum(value, digits = 2) {
+  return (Number(value) || 0).toLocaleString('en-AU', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  });
+}
+
+function fmtInt(value) {
+  return (Number(value) || 0).toLocaleString('en-AU');
+}
+
+function pct(value, digits = 1) {
+  return `${fmtNum(value, digits)}%`;
+}
+
+function fmtDuration(totalSeconds) {
+  const s = Math.max(0, Math.round(Number(totalSeconds) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
+/** Period label taken from the requested query first, then the page form. */
+function periodLabel(analysis) {
+  const requested = analysis.requestedMonths;
+  const formValue = analysis.form && analysis.form.months ? String(analysis.form.months.value || '') : '';
+  const months = requested !== undefined && requested !== null ? String(requested) : formValue;
+
+  if (/^\d+$/.test(months)) {
+    const n = Number(months);
+    return { zh: `近 ${n} 個月`, en: `Last ${n} month${n === 1 ? '' : 's'}` };
+  }
+
+  const label = analysis.form && analysis.form.months ? analysis.form.months.label : '';
+  return { zh: label || '未指定期間', en: label || 'Unspecified period' };
+}
+
+/**
+ * Usage type. The requested query wins because the page <select> is never
+ * re-rendered by the server, so it always shows the first option.
+ */
+function typeLabel(analysis) {
+  if (analysis.requestedType) return analysis.requestedType;
+  const form = analysis.form && analysis.form.type;
+  if (form) return String(form.label || form.value || '').trim();
+  return analysis.type || 'All';
+}
+
+/**
+ * Label for one account.
+ *
+ * With --redact the phone number and the owner name are both replaced by a
+ * position-based label, so a report that gets committed or published can never
+ * expose who a number belongs to. The position matches the order of the entries
+ * in KOGAN_ACCOUNTS.
+ */
+function accountLabel(analysis, index, redact) {
+  if (redact) return `Account ${index + 1}`;
+  return analysis.account || `Account ${index + 1}`;
+}
+
+function ownerLabel(analysis, redact) {
+  if (redact) return '';
+  return String(analysis.owner || '').trim();
+}
+
+const SCRIPT = `
+(function () {
+  var html = document.documentElement;
+  var LEGACY_LANG_KEY = 'kogan-usage-report-lang';
+  var bars = Array.prototype.slice.call(document.querySelectorAll('[data-filter-bar]'));
+  var counts = [];
+
+  // The choice is remembered per generated report, so a stale preference from an
+  // older report can never override the language this file was generated with.
+  function storageKey() {
+    return 'kogan-usage-report-lang:' + (html.getAttribute('data-report-id') || 'default');
+  }
+
+  function currentLang() {
+    return html.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
+  }
+
+  function countTemplate() {
+    var attr = currentLang() === 'en' ? 'data-count-en' : 'data-count-zh';
+    return html.getAttribute(attr) || '';
+  }
+
+  function refreshCounts() {
+    counts.forEach(function (item) {
+      var shown = item.rows.filter(function (tr) { return !tr.hidden; }).length;
+      item.el.textContent = countTemplate()
+        .replace('{shown}', String(shown))
+        .replace('{total}', String(item.rows.length));
+    });
+  }
+
+  function applyLang(lang, persist) {
+    html.setAttribute('data-lang', lang);
+    html.setAttribute('lang', lang === 'en' ? 'en' : 'zh-Hant');
+    var title = html.getAttribute(lang === 'en' ? 'data-title-en' : 'data-title-zh');
+    if (title) document.title = title;
+    document.querySelectorAll('[data-lang-btn]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-lang-btn') === lang);
+    });
+    if (persist) {
+      try { localStorage.setItem(storageKey(), lang); } catch (err) { /* file:// may block storage */ }
+    }
+    refreshCounts();
+  }
+
+  document.querySelectorAll('[data-lang-btn]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      applyLang(btn.getAttribute('data-lang-btn'), true);
+    });
+  });
+
+  bars.forEach(function (bar) {
+    var scope = bar.getAttribute('data-filter-bar');
+    var countEl = document.querySelector('[data-count-for="' + scope + '"]');
+    var rows = Array.prototype.slice.call(
+      document.querySelectorAll('tr[data-kind="row"][data-scope="' + scope + '"]')
+    );
+    if (countEl) counts.push({ el: countEl, rows: rows });
+
+    bar.addEventListener('click', function (event) {
+      var btn = event.target.closest('button[data-filter]');
+      if (!btn) return;
+      bar.querySelectorAll('button[data-filter]').forEach(function (b) {
+        b.classList.toggle('active', b === btn);
+      });
+      var mode = btn.getAttribute('data-filter');
+      rows.forEach(function (tr) {
+        tr.hidden = mode === 'high' && tr.getAttribute('data-high') !== '1';
+      });
+      refreshCounts();
+    });
+  });
+
+  // Drop the key older reports used, which was shared across every report and
+  // could force a language different from the one this file was generated with.
+  try { localStorage.removeItem(LEGACY_LANG_KEY); } catch (err) { /* ignore */ }
+
+  var saved = null;
+  try { saved = localStorage.getItem(storageKey()); } catch (err) { /* ignore */ }
+  if (saved === 'en' || saved === 'zh') {
+    applyLang(saved, false);
+  } else {
+    applyLang(currentLang(), false);
+  }
+})();
+`;
+
+function renderSummaryCards(analysis) {
+  const s = analysis.stats;
+  const cfg = analysis.config;
+  return `
+      <div class="cards">
+        <div class="card">
+          <div class="label">${bi('清理後總用量', 'Total usage after cleanup')}</div>
+          <div class="value">${esc(fmtMb(s.totalMb))}</div>
+          <div class="sub">${bi(
+            `${fmtInt(s.keptCount)} 筆記錄・${fmtInt(s.days)} 天`,
+            `${fmtInt(s.keptCount)} records · ${fmtInt(s.days)} days`
+          )}</div>
+        </div>
+        <div class="card card--high">
+          <div class="label">${bi(`高用量 > ${cfg.highlightMb} MB`, `High usage > ${cfg.highlightMb} MB`)}</div>
+          <div class="value">${bi(`${fmtInt(s.highlightedCount)} 筆`, `${fmtInt(s.highlightedCount)}`)}</div>
+          <div class="sub">${bi(
+            `合計 ${fmtMb(s.highlightedMb)}・佔 ${pct(s.highlightedSharePct)}`,
+            `Total ${fmtMb(s.highlightedMb)} · ${pct(s.highlightedSharePct)}`
+          )}</div>
+        </div>
+        <div class="card${s.ignoredCount ? '' : ' card--ok'}">
+          <div class="label">${bi(`已忽略 < ${cfg.minMb} MB`, `Ignored < ${cfg.minMb} MB`)}</div>
+          <div class="value">${bi(`${fmtInt(s.ignoredCount)} 筆`, `${fmtInt(s.ignoredCount)}`)}</div>
+          <div class="sub">${bi(
+            `合計 ${fmtMb(s.ignoredMb)}（原始資料的 ${pct(s.ignoredSharePct)}）`,
+            `Total ${fmtMb(s.ignoredMb)} (${pct(s.ignoredSharePct)} of raw data)`
+          )}</div>
+        </div>
+        <div class="card">
+          <div class="label">${bi('單筆最大 / 平均', 'Largest / average record')}</div>
+          <div class="value">${esc(fmtMb(s.maxMb))}</div>
+          <div class="sub">${bi(`平均每筆 ${fmtMb(s.avgMb)}`, `Average ${fmtMb(s.avgMb)}`)}</div>
+        </div>
+      </div>`;
+}
+
+function renderChart(analysis) {
+  const days = analysis.days;
+  if (!days.length) {
+    return `      <p class="empty">${bi('沒有符合條件的資料可繪製圖表。', 'No matching records to chart.')}</p>`;
+  }
+
+  const max = Math.max(...days.map((d) => d.mb), 0) || 1;
+  const rows = days
+    .slice()
+    .sort((a, b) => (a.dateIso < b.dateIso ? -1 : 1))
+    .map((d) => {
+      const width = Math.max(1.5, (d.mb / max) * 100);
+      const cls = d.highlighted > 0 ? 'chart-bar is-high' : 'chart-bar';
+      return `        <div class="chart-row">
+          <span class="chart-date">${esc(d.dateDisplay.slice(0, 5))}</span>
+          <span class="chart-track"><span class="${cls}" style="width:${width.toFixed(2)}%"></span></span>
+          <span class="chart-val">${esc(fmtMb(d.mb))}${d.highlighted ? ' <em>&#9873;</em>' : ''}</span>
+        </div>`;
+    })
+    .join('\n');
+
+  return `      <div class="chart">
+${rows}
+      </div>
+      <p class="foot-note">${bi(
+        `⚑ = 當日有單筆 > ${analysis.config.highlightMb} MB 的記錄。`,
+        `⚑ = a single record above ${analysis.config.highlightMb} MB that day.`
+      )}</p>`;
+}
+
+function renderDetailTable(analysis) {
+  const scope = analysis.scope;
+  const max = analysis.stats.maxMb || 1;
+
+  if (!analysis.kept.length) {
+    return `      <p class="empty">${bi(
+      '沒有大於等於門檻值的資料記錄（全部都被忽略）。',
+      'No records at or above the threshold (everything was ignored).'
+    )}</p>`;
+  }
+
+  const rows = analysis.kept
+    .map((r) => {
+      const width = Math.max(0.8, (r.mb / max) * 100);
+      const isHigh = r.highlighted;
+      return `          <tr data-kind="row" data-scope="${esc(scope)}" data-high="${isHigh ? '1' : '0'}"${isHigh ? ' class="row-high"' : ''}>
+            <td class="mono">${esc(r.dateDisplay)}</td>
+            <td class="mono">${esc(r.timeDisplay)}</td>
+            <td>${esc(r.type)}</td>
+            <td>${esc(r.country)}</td>
+            <td class="num strong">${esc(fmtMb(r.mb))}</td>
+            <td class="bar-cell"><span class="mini-track"><span class="mini-bar${isHigh ? ' is-high' : ''}" style="width:${width.toFixed(2)}%"></span></span></td>
+            <td class="num">${esc(pct(r.sharePct))}</td>
+            <td>${isHigh ? `<span class="badge">${bi('高用量', 'High')}</span>` : `<span class="badge badge--muted">${bi('一般', 'Normal')}</span>`}</td>
+          </tr>`;
+    })
+    .join('\n');
+
+  return `      <div class="toolbar" data-filter-bar="${esc(scope)}">
+        <button type="button" data-filter="all" class="active">${bi('全部', 'All')}</button>
+        <button type="button" data-filter="high">${bi(
+          `只看 > ${analysis.config.highlightMb} MB`,
+          `Only > ${analysis.config.highlightMb} MB`
+        )}</button>
+        <span class="spacer"></span>
+        <span class="count" data-count-for="${esc(scope)}"></span>
+      </div>
+      <div class="table-shell">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>${bi('日期', 'Date')}</th><th>${bi('時間', 'Time')}</th><th>${bi('類型', 'Type')}</th><th>${bi('國家', 'Country')}</th>
+              <th class="num">${bi('用量', 'Usage')}</th><th class="bar-cell">${bi('分佈', 'Share')}</th><th class="num">${bi('佔比', 'Percent')}</th><th>${bi('狀態', 'Status')}</th>
+            </tr>
+          </thead>
+          <tbody>
+${rows}
+          </tbody>
+        </table>
+      </div>`;
+}
+
+function renderDailyTable(analysis) {
+  if (!analysis.days.length) return '';
+  const total = analysis.stats.totalMb || 1;
+  const rows = analysis.days
+    .map((d) => `          <tr>
+            <td class="mono">${esc(d.dateDisplay)}</td>
+            <td class="num">${esc(fmtInt(d.count))}</td>
+            <td class="num strong">${esc(fmtMb(d.mb))}</td>
+            <td class="num">${esc(pct((d.mb / total) * 100))}</td>
+            <td class="num">${esc(fmtMb(d.maxMb))}</td>
+            <td class="num">${d.highlighted ? `<span class="badge">${esc(fmtInt(d.highlighted))}</span>` : '0'}</td>
+          </tr>`)
+    .join('\n');
+
+  return `      <h3 class="block-title">${bi('每日彙總', 'Daily summary')}</h3>
+      <div class="table-shell">
+        <table>
+          <thead>
+            <tr>
+              <th>${bi('日期', 'Date')}</th><th class="num">${bi('筆數', 'Records')}</th><th class="num">${bi('當日用量', 'Usage')}</th>
+              <th class="num">${bi('佔比', 'Percent')}</th><th class="num">${bi('最大單筆', 'Largest')}</th><th class="num">${bi(`>${analysis.config.highlightMb} MB`, `>${analysis.config.highlightMb} MB`)}</th>
+            </tr>
+          </thead>
+          <tbody>
+${rows}
+          </tbody>
+        </table>
+      </div>`;
+}
+
+function footerMbFrom(footer) {
+  if (!footer || footer.dataAmount === null || footer.dataAmount === undefined) return null;
+  const unit = String(footer.dataUnit || 'MB').toUpperCase();
+  const factor = { B: 1 / 1048576, KB: 1 / 1024, MB: 1, GB: 1024, TB: 1048576 }[unit];
+  return factor === undefined ? null : footer.dataAmount * factor;
+}
+
+function renderRules(analysis) {
+  const s = analysis.stats;
+  const cfg = analysis.config;
+  const footerMb = footerMbFrom(analysis.footer);
+
+  let checkValue;
+  let checkNote;
+
+  if (footerMb === null) {
+    checkValue = `<span class="check--warn">${bi('頁尾未提供合計，無法交叉比對', 'No footer total to compare against')}</span>`;
+    checkNote = bi('此頁面沒有 Charged 頁尾，略過交叉比對', 'This page has no Charged footer, cross-check skipped');
+  } else {
+    const diff = s.rawTotalMb - footerMb;
+    const tolerance = Math.max(0.05, Number(s.roundingErrorMb) || 0, Math.abs(footerMb) * 0.0005);
+    checkValue =
+      Math.abs(diff) <= tolerance
+        ? `<span class="check">${bi('✓ 與頁面頁尾一致', '✓ Matches the page footer')}</span>`
+        : `<span class="check--warn">${bi(
+            `⚠ 與頁尾差異 ${fmtMb(Math.abs(diff))}`,
+            `⚠ Differs from footer by ${fmtMb(Math.abs(diff))}`
+          )}</span>`;
+    checkNote = bi(
+      `頁尾標示 ${analysis.footer.dataText || ''}，本報告 ${fmtMb(s.rawTotalMb)}；差異 ${fmtMb(
+        Math.abs(diff)
+      )}，屬顯示值四捨五入範圍`,
+      `Footer shows ${analysis.footer.dataText || ''}, this report ${fmtMb(
+        s.rawTotalMb
+      )}; the ${fmtMb(Math.abs(diff))} difference is display rounding`
+    );
+  }
+
+  const extras = [];
+  if (s.duplicateCount) {
+    extras.push(bi(`移除重複列 ${fmtInt(s.duplicateCount)} 筆`, `${fmtInt(s.duplicateCount)} duplicate rows removed`));
+  }
+  if (s.invalidCount) {
+    extras.push(bi(`無法解析的列 ${fmtInt(s.invalidCount)} 筆`, `${fmtInt(s.invalidCount)} unparsable rows`));
+  }
+  if (s.voiceCount) {
+    extras.push(
+      bi(
+        `另有通話記錄 ${fmtInt(s.voiceCount)} 筆（合計 ${fmtDuration(s.voiceSeconds)}），未列入數據統計`,
+        `${fmtInt(s.voiceCount)} call records (${fmtDuration(s.voiceSeconds)}) are excluded from the data totals`
+      )
+    );
+  }
+  if (s.smsCount) {
+    extras.push(
+      bi(
+        `另有 SMS/MMS ${fmtInt(s.smsCount)} 筆，未列入數據統計`,
+        `${fmtInt(s.smsCount)} SMS/MMS records are excluded from the data totals`
+      )
+    );
+  }
+  if (s.otherCount) {
+    extras.push(bi(`其他類型記錄 ${fmtInt(s.otherCount)} 筆`, `${fmtInt(s.otherCount)} other records`));
+  }
+
+  const byteNote =
+    cfg.mbBase === 1048576
+      ? bi(
+          '顯示為 B 的記錄以 1024 進位換算，與頁尾合計一致',
+          'Rows shown as B are converted with 1024-based units to match the footer'
+        )
+      : bi('顯示為 B 的記錄以 1000 進位換算', 'Rows shown as B are converted with 1000-based units');
+
+  return `      <h3 class="block-title">${bi('清理規則與資料品質', 'Cleanup rules & data quality')}</h3>
+      <div class="rules">
+        <div class="rule"><span class="k">${bi('忽略門檻', 'Ignore threshold')}</span><span class="v">${bi(
+          `< ${cfg.minMb} MB`,
+          `< ${cfg.minMb} MB`
+        )}</span><div class="note">${bi(
+          `已忽略 ${fmtInt(s.ignoredCount)} 筆，合計 ${fmtMb(s.ignoredMb)}`,
+          `${fmtInt(s.ignoredCount)} records ignored, ${fmtMb(s.ignoredMb)} total`
+        )}</div></div>
+        <div class="rule"><span class="k">${bi('Highlight 門檻', 'Highlight threshold')}</span><span class="v">${bi(
+          `> ${cfg.highlightMb} MB`,
+          `> ${cfg.highlightMb} MB`
+        )}</span><div class="note">${bi(
+          `已標記 ${fmtInt(s.highlightedCount)} 筆，合計 ${fmtMb(s.highlightedMb)}`,
+          `${fmtInt(s.highlightedCount)} records flagged, ${fmtMb(s.highlightedMb)} total`
+        )}</div></div>
+        <div class="rule"><span class="k">${bi('位元組換算', 'Byte conversion')}</span><span class="v">${bi(
+          `1 MB = ${fmtInt(cfg.mbBase)} bytes`,
+          `1 MB = ${fmtInt(cfg.mbBase)} bytes`
+        )}</span><div class="note">${byteNote}</div></div>
+        <div class="rule"><span class="k">${bi('原始資料合計', 'Raw data total')}</span><span class="v">${esc(
+    fmtMb(s.rawTotalMb)
+  )}</span><div class="note">${bi(
+    `${fmtInt(s.rawCount)} 筆數據記錄（過濾前）`,
+    `${fmtInt(s.rawCount)} data records before filtering`
+  )}</div></div>
+        <div class="rule"><span class="k">${bi('頁尾交叉比對', 'Footer cross-check')}</span><span class="v">${checkValue}</span><div class="note">${checkNote}</div></div>
+      </div>
+${extras.length ? `      <p class="foot-note">${extras.join('<span class="i18n-zh">・</span><span class="i18n-en"> &middot; </span>')}。</p>\n` : ''}`;
+}
+
+function renderAccountSection(analysis, index, redact) {
+  const number = accountLabel(analysis, index, redact);
+  const owner = ownerLabel(analysis, redact);
+  // With an owner name the phone number becomes a quieter suffix.
+  const heading = owner ? `${esc(owner)}<span class="acct-num">${esc(number)}</span>` : esc(number);
+  const period = periodLabel(analysis);
+  const type = typeLabel(analysis);
+  const range =
+    analysis.stats.firstDate && analysis.stats.lastDate
+      ? `${analysis.stats.firstDate} → ${analysis.stats.lastDate}`
+      : '—';
+
+  return `    <section class="account" id="${esc(analysis.scope)}">
+      <div class="account-head">
+        <h2>${heading}</h2>
+        <span class="pill pill--accent">${bi(period.zh, period.en)}</span>
+        <span class="pill">${esc(type)}</span>
+        ${
+          analysis.stats.highlightedCount
+            ? `<span class="pill pill--accent">${bi(
+                `${fmtInt(analysis.stats.highlightedCount)} 筆高用量`,
+                `${fmtInt(analysis.stats.highlightedCount)} high-usage`
+              )}</span>`
+            : ''
+        }
+      </div>
+      <p class="account-sub">${bi('資料範圍：', 'Range: ')}${esc(range)}<span class="i18n-zh">　·　</span><span class="i18n-en"> &middot; </span>${bi(
+    '來源頁面：',
+    'Source page: '
+  )}accounts.koganmobile.com.au/service/usage</p>
+${renderSummaryCards(analysis)}
+      <h3 class="block-title">${bi('每日用量', 'Daily usage')}</h3>
+${renderChart(analysis)}
+      <h3 class="block-title">${bi('用量明細（新 → 舊）', 'Usage detail (newest first)')}</h3>
+${renderDetailTable(analysis)}
+${renderDailyTable(analysis)}
+${renderRules(analysis)}
+    </section>`;
+}
+
+function renderOverview(analyses, redact) {
+  if (analyses.length < 2) return '';
+  const hasOwners = !redact && analyses.some((a) => String(a.owner || '').trim());
+  const totals = analyses.reduce(
+    (acc, a) => ({
+      mb: acc.mb + a.stats.totalMb,
+      kept: acc.kept + a.stats.keptCount,
+      ignored: acc.ignored + a.stats.ignoredCount,
+      ignoredMb: acc.ignoredMb + a.stats.ignoredMb,
+      high: acc.high + a.stats.highlightedCount,
+      highMb: acc.highMb + a.stats.highlightedMb,
+    }),
+    { mb: 0, kept: 0, ignored: 0, ignoredMb: 0, high: 0, highMb: 0 }
+  );
+
+  const rows = analyses
+    .map(
+      (a, i) => `          <tr>
+            ${hasOwners ? `<td>${esc(String(a.owner || '').trim() || '—')}</td>` : ''}
+            <td><a href="#${esc(a.scope)}">${esc(accountLabel(a, i, redact))}</a></td>
+            <td class="num strong">${esc(fmtMb(a.stats.totalMb))}</td>
+            <td class="num">${esc(fmtInt(a.stats.keptCount))}</td>
+            <td class="num">${
+              a.stats.highlightedCount ? `<span class="badge">${esc(fmtInt(a.stats.highlightedCount))}</span>` : '0'
+            }</td>
+            <td class="num">${esc(fmtMb(a.stats.highlightedMb))}</td>
+            <td class="num">${esc(fmtInt(a.stats.ignoredCount))}</td>
+            <td class="num">${esc(fmtMb(a.stats.ignoredMb))}</td>
+          </tr>`
+    )
+    .join('\n');
+
+  return `    <section class="account">
+      <div class="account-head"><h2>${bi('所有門號總覽', 'All accounts overview')}</h2><span class="pill">${bi(
+    `${fmtInt(analyses.length)} 個門號`,
+    `${fmtInt(analyses.length)} account${analyses.length === 1 ? '' : 's'}`
+  )}</span></div>
+      <div class="cards">
+        <div class="card"><div class="label">${bi('合計用量', 'Combined usage')}</div><div class="value">${esc(
+    fmtMb(totals.mb)
+  )}</div><div class="sub">${bi(`${fmtInt(totals.kept)} 筆記錄`, `${fmtInt(totals.kept)} records`)}</div></div>
+        <div class="card card--high"><div class="label">${bi('高用量合計', 'High usage')}</div><div class="value">${bi(
+    `${fmtInt(totals.high)} 筆`,
+    `${fmtInt(totals.high)}`
+  )}</div><div class="sub">${esc(fmtMb(totals.highMb))}</div></div>
+        <div class="card"><div class="label">${bi('已忽略合計', 'Ignored')}</div><div class="value">${bi(
+    `${fmtInt(totals.ignored)} 筆`,
+    `${fmtInt(totals.ignored)}`
+  )}</div><div class="sub">${esc(fmtMb(totals.ignoredMb))}</div></div>
+      </div>
+      <div class="table-shell">
+        <table class="overview-table">
+          <thead>
+            <tr>
+              ${hasOwners ? `<th>${bi('姓名', 'Owner')}</th>` : ''}
+              <th>${bi('門號', 'Account')}</th><th class="num">${bi('用量', 'Usage')}</th><th class="num">${bi(
+    '筆數',
+    'Records'
+  )}</th>
+              <th class="num">${bi('高用量', 'High usage')}</th><th class="num">${bi(
+    '高用量合計',
+    'High total'
+  )}</th><th class="num">${bi('已忽略', 'Ignored')}</th><th class="num">${bi('忽略合計', 'Ignored total')}</th>
+            </tr>
+          </thead>
+          <tbody>
+${rows}
+          </tbody>
+        </table>
+      </div>
+    </section>`;
+}
+
+/** Build the complete standalone HTML report. */
+function renderReport({
+  analyses,
+  generatedAt,
+  settings = {},
+  sourceLabel = '',
+  lang = DEFAULT_LANG,
+  redact = false,
+}) {
+  const body = analyses.map((a, i) => renderAccountSection(a, i, redact)).join('\n');
+  const defaultLang = normalizeLang(lang) || DEFAULT_LANG;
+
+  const onlyAccount = accountLabel(analyses[0], 0, redact);
+  const titleZh =
+    analyses.length === 1
+      ? `Kogan Mobile 數據用量報告 - ${onlyAccount}`.trim()
+      : 'Kogan Mobile 數據用量報告';
+  const titleEn =
+    analyses.length === 1
+      ? `Kogan Mobile data usage report - ${onlyAccount}`.trim()
+      : 'Kogan Mobile data usage report';
+
+  // Identifies this generated file, so the language the reader picks is only
+  // remembered for this report and never leaks into the next one.
+  const reportId = String(generatedAt || '').replace(/[^0-9]/g, '').slice(0, 12) || 'report';
+
+  return `<!DOCTYPE html>
+<html lang="${defaultLang === 'en' ? 'en' : 'zh-Hant'}" data-lang="${defaultLang}" data-report-id="${esc(
+    reportId
+  )}" data-title-zh="${esc(
+    titleZh
+  )}" data-title-en="${esc(titleEn)}" data-count-zh="顯示 {shown} / {total} 筆" data-count-en="Showing {shown} / {total}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(defaultLang === 'en' ? titleEn : titleZh)}</title>
+<style>
+${STYLES}
+</style>
+</head>
+<body>
+  <header class="page-head">
+    <div class="wrap">
+      <div class="lang-switch">
+        <button type="button" data-lang-btn="zh">中文</button>
+        <button type="button" data-lang-btn="en">English</button>
+      </div>
+      <div class="brand"><span class="dot"></span><span class="txt">Kogan Mobile</span></div>
+      <h1>${bi('數據用量報告', 'Data usage report')}</h1>
+      <div class="meta">
+        ${bi('產生時間：', 'Generated: ')}<strong>${esc(generatedAt)}</strong>
+        ${sourceLabel ? `<span class="i18n-zh">　·　</span><span class="i18n-en"> &middot; </span>${bi('來源：', 'Source: ')}<strong>${esc(sourceLabel)}</strong>` : ''}
+        ${settings.mbBase ? `<span class="i18n-zh">　·　</span><span class="i18n-en"> &middot; </span>1 MB = ${esc(fmtInt(settings.mbBase))} bytes` : ''}
+        <br>${bi('清理規則：', 'Rules: ')}${bi(
+    `忽略 < ${settings.minMb} MB、highlight > ${settings.highlightMb} MB`,
+    `ignore < ${settings.minMb} MB, highlight > ${settings.highlightMb} MB`
+  )}
+      </div>
+    </div>
+  </header>
+  <div class="wrap">
+${renderOverview(analyses, redact)}
+${body}
+    <p class="page-foot">${bi(
+      '此報告由 kogan-mobile-data-usage 自動產生・資料版權屬 Kogan Mobile・僅供個人用量分析參考',
+      'Generated by kogan-mobile-data-usage - data belongs to Kogan Mobile - for personal usage analysis only'
+    )}</p>
+  </div>
+  <script>
+${SCRIPT}
+  </script>
+</body>
+</html>
+`;
+}
+
+module.exports = { renderReport, esc, bi, fmtMb, fmtInt, periodLabel, typeLabel };
