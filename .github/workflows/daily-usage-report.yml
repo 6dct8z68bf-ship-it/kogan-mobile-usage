@@ -2,6 +2,8 @@ name: Daily usage report
 
 on:
   schedule:
+    # Hourly: the usage page itself only refreshes about once an hour, so this
+    # keeps the published report at most an hour behind.
     - cron: '0 * * * *'
   # Manual runs: Actions -> Daily usage report -> Run workflow. The inputs apply
   # to that single run and override the repository variables.
@@ -77,9 +79,12 @@ jobs:
             exit 1
           fi
           umask 077
+          # Scheduled runs have no inputs, so the defaults below are what they
+          # use. Keep them in step with the workflow_dispatch defaults above.
+          # Repository variables of the same name, if set, win over both.
           {
             echo "KOGAN_ACCOUNTS=${SECRET_ACCOUNTS}"
-            echo "KOGAN_MONTHS=${VAR_MONTHS:-1}"
+            echo "KOGAN_MONTHS=${VAR_MONTHS:-6}"
             echo "KOGAN_USAGE_TYPE=${VAR_TYPE:-Data}"
             echo "KOGAN_MIN_MB=${VAR_MIN_MB:-1}"
             echo "KOGAN_HIGHLIGHT_MB=${VAR_HIGHLIGHT_MB:-50}"

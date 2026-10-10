@@ -193,23 +193,28 @@ fixtures/                 saved sample page (contains a real phone number, do no
 reference/login-page.html saved sign-in page, kept for debugging comparisons
 ```
 
-## Run it daily with GitHub Actions
+## Run it on a schedule with GitHub Actions
 
-`.github/workflows/daily-usage-report.yml` signs in every day, rebuilds the
+`.github/workflows/daily-usage-report.yml` signs in on a schedule, rebuilds the
 report and publishes it to GitHub Pages. The report is a build output, so it is
 never committed: the repository keeps the source, and the report arrives either
 as the web page or as a workflow artifact with 30 days of retention.
 
-The workflow runs at `0 20 * * *` UTC — 06:00 in Sydney, or 07:00 while daylight
-saving is in effect. It also has a manual trigger: **Actions → Daily usage
-report → Run workflow**. A manual run takes three optional inputs, which apply
-to that single run and override the repository variables:
+It runs at `0 * * * *` UTC, once an hour, because the usage page only refreshes
+about that often. It also has a manual trigger: **Actions → Daily usage report →
+Run workflow**. A manual run takes three optional inputs, which apply to that
+single run only:
 
 | Input | Options | Default |
 | --- | --- | --- |
-| `months` | `1`, `3`, `6` | `1` |
+| `months` | `1`, `3`, `6` | `6` |
 | `type` | `Data`, `All`, `SMSMMS`, `Calls` | `Data` |
 | `lang` | `en`, `zh` | `en` |
+
+Scheduled runs have no inputs, so they fall back to the defaults written into
+the workflow's "Write .env" step — currently 6 months, `Data`, `en`. Keep those
+two sets of defaults in step with each other. A repository variable of the same
+name, if you set one, takes priority over both.
 
 The same inputs work from the command line, for example
 `gh workflow run daily-usage-report.yml -f months=3`.
