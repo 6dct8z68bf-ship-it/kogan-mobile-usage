@@ -214,6 +214,20 @@ to that single run and override the repository variables:
 The same inputs work from the command line, for example
 `gh workflow run daily-usage-report.yml -f months=3`.
 
+### Branch protection and the daily commit
+
+If `main` is protected with "Require a pull request before merging", the
+workflow cannot push the report with `GITHUB_TOKEN`: the push is rejected with
+`GH006: Protected branch update failed`. The run then logs a warning instead of
+failing, and the artifact and the Pages site are still updated, so only the
+committed copy goes stale. To keep the copy in git as well, pick one of:
+
+- add **GitHub Actions** to *Allow specified actors to bypass required pull
+  requests* in the branch protection rule (Settings → Branches), or
+- push the report from a personal access token stored as a secret instead of
+  `GITHUB_TOKEN`, or
+- drop the "Commit the report" step and rely on the Pages site and the artifact.
+
 The same run publishes the report to GitHub Pages, so the latest version is one
 tap away on a phone:
 

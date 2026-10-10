@@ -140,11 +140,23 @@ jobs:
             fi
 
             git commit -m "chore: usage report $(date -u +%Y-%m-%d)"
-            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            if git push origin "HEAD:${GITHUB_REF_NAME}" 2>push-error.txt; then
               echo "Report pushed on attempt ${attempt}."
+              rm -f push-error.txt
               exit 0
             fi
 
+            # Branch protection on main rejects pushes from GITHUB_TOKEN. That must
+            # not fail the whole run: the report has already been uploaded as an
+            # artifact and the Pages deployment still has to happen.
+            if grep -qE 'protected branch|GH006' push-error.txt; then
+              echo "::warning::${GITHUB_REF_NAME} is protected, so the report could not be committed. The artifact and the GitHub Pages site were still updated. See the README for the options."
+              cat push-error.txt
+              rm -f push-error.txt
+              exit 0
+            fi
+
+            cat push-error.txt
             echo "Push rejected because the remote moved; retrying with the newest commit."
             sleep 5
           done
