@@ -1,4 +1,4 @@
-name: Daily usage report
+name: Usage report
 
 on:
   schedule:
@@ -6,7 +6,7 @@ on:
     # its busiest exactly at minute 0, where runs get delayed or even dropped,
     # and the documented advice is to pick a different minute.
     - cron: '17 */3 * * *'
-  # Manual runs: Actions -> Daily usage report -> Run workflow. The inputs apply
+  # Manual runs: Actions -> Usage report -> Run workflow. The inputs apply
   # to that single run and override the repository variables.
   workflow_dispatch:
     inputs:

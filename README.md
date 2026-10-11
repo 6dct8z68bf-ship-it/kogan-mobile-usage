@@ -210,7 +210,7 @@ deliberately not `0`: GitHub's scheduler is at its busiest exactly on the hour,
 where runs are delayed or even dropped, and GitHub's own advice is to schedule
 "at a different time of the hour".
 
-It also has a manual trigger: **Actions → Daily usage report → Run workflow**. A
+It also has a manual trigger: **Actions → Usage report → Run workflow**. A
 manual run takes three optional inputs, which apply to that single run only:
 
 | Input | Options | Default |
@@ -308,10 +308,10 @@ in the workflow log.
   reach the repository.
 - GitHub-hosted runners sit in Azure datacenters, not on an Australian
   residential connection. Kogan's sign-in page is behind an F5 WAF, so a login
-  from that network may be challenged or blocked. If the daily run starts
+  from that network may be challenged or blocked. If the scheduled runs start
   failing, that is the first thing to check.
-- Scheduled runs are delayed during busy periods and the cron time is fixed in
-  UTC, so the local time shifts by an hour when daylight saving changes.
+- Scheduled runs can be delayed, and the cron time is fixed in UTC, so the local
+  time shifts by an hour when daylight saving changes.
 
 ## Troubleshooting
 
