@@ -199,7 +199,7 @@ reference/login-page.html saved sign-in page, kept for debugging comparisons
 
 ## Run it on a schedule with GitHub Actions
 
-`.github/workflows/daily-usage-report.yml` signs in on a schedule, rebuilds the
+`.github/workflows/usage-report.yml` signs in on a schedule, rebuilds the
 report and publishes it to GitHub Pages. The report is a build output, so it is
 never committed: the repository keeps the source, and the report arrives either
 as the web page or as a workflow artifact with 30 days of retention.
@@ -225,7 +225,7 @@ two sets of defaults in step with each other. A repository variable of the same
 name, if you set one, takes priority over both.
 
 The same inputs work from the command line, for example
-`gh workflow run daily-usage-report.yml -f months=3`.
+`gh workflow run usage-report.yml -f months=3`.
 
 Because nothing is pushed back, the workflow keeps working unchanged even when
 `main` is protected with "Require a pull request before merging".
