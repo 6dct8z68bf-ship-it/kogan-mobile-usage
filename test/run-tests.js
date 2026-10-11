@@ -8,7 +8,7 @@ const path = require('path');
 const { parseDurationOrSize, toMb } = require('../src/units');
 const { parseUsageHtml } = require('../src/parse-usage');
 const { cleanUsage, buildProjection } = require('../src/clean-usage');
-const { renderReport } = require('../src/render-report');
+const { renderReport, fmtMb } = require('../src/render-report');
 const { parseEnvFile, collectAccounts } = require('../src/env');
 const { maskPhoneNumber } = require('../src/mask');
 
@@ -431,6 +431,21 @@ test('renders the cumulative usage chart with the projection', () => {
   assert.ok(out.includes('累積用量與投射'), 'zh section title expected');
   assert.ok(out.includes('06/10/2027'), 'projection date in the caption');
   assert.ok(/proj-label[^>]*>[^<]*GB</.test(out), 'projected total label expected');
+});
+
+test('adds the projected total to the overview table', () => {
+  const first = cleanUsage(parseUsageHtml(html), { minMb: 1, highlightMb: 50, projectUntil: '2027-10-06' });
+  const second = { ...first, scope: 'account-2', account: '0499 999 999' };
+  const out = renderReport({
+    analyses: [first, second],
+    generatedAt: '2026-10-11 10:00 (Australia/Sydney)',
+    settings: { mbBase: 1048576, minMb: 1, highlightMb: 50 },
+  });
+  const table = out.match(/<table class="overview-table">[\s\S]*?<\/table>/)[0];
+  assert.ok(table.includes('Projected by 06/10/2027'), 'projected column header');
+  assert.ok(table.includes('投射至 06/10/2027'), 'zh projected column header');
+  assert.ok(table.includes(fmtMb(first.projection.projectedTotalMb)), 'projected total in the table');
+  assert.ok(out.includes('carried straight to 06/10/2027'), 'projection explained under the table');
 });
 
 process.stdout.write(`\n${passed} passed, ${failed} failed\n`);
