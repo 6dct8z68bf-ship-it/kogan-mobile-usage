@@ -204,10 +204,14 @@ report and publishes it to GitHub Pages. The report is a build output, so it is
 never committed: the repository keeps the source, and the report arrives either
 as the web page or as a workflow artifact with 30 days of retention.
 
-It runs at `0 * * * *` UTC, once an hour, because the usage page only refreshes
-about that often. It also has a manual trigger: **Actions → Daily usage report →
-Run workflow**. A manual run takes three optional inputs, which apply to that
-single run only:
+It runs at `17 */3 * * *` UTC — every three hours, at 17 minutes past, which is
+02:17, 05:17, 08:17, 11:17, 14:17, 17:17, 20:17 and 23:17 in Sydney. The minute is
+deliberately not `0`: GitHub's scheduler is at its busiest exactly on the hour,
+where runs are delayed or even dropped, and GitHub's own advice is to schedule
+"at a different time of the hour".
+
+It also has a manual trigger: **Actions → Daily usage report → Run workflow**. A
+manual run takes three optional inputs, which apply to that single run only:
 
 | Input | Options | Default |
 | --- | --- | --- |

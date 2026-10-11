@@ -2,9 +2,10 @@ name: Daily usage report
 
 on:
   schedule:
-    # Hourly: the usage page itself only refreshes about once an hour, so this
-    # keeps the published report at most an hour behind.
-    - cron: '0 * * * *'
+    # Every three hours, deliberately not on the hour: GitHub's scheduler is at
+    # its busiest exactly at minute 0, where runs get delayed or even dropped,
+    # and the documented advice is to pick a different minute.
+    - cron: '17 */3 * * *'
   # Manual runs: Actions -> Daily usage report -> Run workflow. The inputs apply
   # to that single run and override the repository variables.
   workflow_dispatch:
