@@ -1,4 +1,4 @@
-name: Usage report
+name: Kogan Scheduler Update
 
 on:
   schedule:
