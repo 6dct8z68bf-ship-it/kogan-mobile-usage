@@ -614,6 +614,9 @@ ${renderRules(analysis)}
 function renderOverview(analyses, labelOptions, hideNames) {
   if (analyses.length < 2) return '';
   const hasOwners = !hideNames && analyses.some((a) => String(a.owner || '').trim());
+  // A projection column only makes sense when there is a projection to show.
+  const projected = analyses.filter((a) => a.projection);
+  const projectUntil = projected.length ? isoToDisplayDate(projected[0].projection.untilIso) : '';
   const totals = analyses.reduce(
     (acc, a) => ({
       mb: acc.mb + a.stats.totalMb,
@@ -632,6 +635,13 @@ function renderOverview(analyses, labelOptions, hideNames) {
             ${hasOwners ? `<td>${esc(String(a.owner || '').trim() || '—')}</td>` : ''}
             <td><a href="#${esc(a.scope)}">${esc(accountLabel(a, i, labelOptions))}</a></td>
             <td class="num strong">${esc(fmtMb(a.stats.totalMb))}</td>
+            ${
+              projectUntil
+                ? `<td class="num">${
+                    a.projection ? esc(fmtMb(a.projection.projectedTotalMb)) : '—'
+                  }</td>`
+                : ''
+            }
             <td class="num">${esc(fmtInt(a.stats.keptCount))}</td>
             <td class="num">${
               a.stats.highlightedCount ? `<span class="badge">${esc(fmtInt(a.stats.highlightedCount))}</span>` : '0'
@@ -666,10 +676,11 @@ function renderOverview(analyses, labelOptions, hideNames) {
           <thead>
             <tr>
               ${hasOwners ? `<th>${bi('姓名', 'Owner')}</th>` : ''}
-              <th>${bi('門號', 'Account')}</th><th class="num">${bi('用量', 'Usage')}</th><th class="num">${bi(
-    '筆數',
-    'Records'
-  )}</th>
+              <th>${bi('門號', 'Account')}</th><th class="num">${bi('用量', 'Usage')}</th>${
+    projectUntil
+      ? `<th class="num">${bi(`投射至 ${projectUntil}`, `Projected by ${projectUntil}`)}</th>`
+      : ''
+  }<th class="num">${bi('筆數', 'Records')}</th>
               <th class="num">${bi('高用量', 'High usage')}</th><th class="num">${bi(
     '高用量合計',
     'High total'
@@ -681,6 +692,14 @@ ${rows}
           </tbody>
         </table>
       </div>
+      ${
+        projectUntil
+          ? `<p class="foot-note">${bi(
+              `投射值＝把觀測期間的平均每日用量直線延伸到 ${projectUntil}（方案到期日）。樣本天數越少，預估越粗略。`,
+              `Projected = the average daily usage of the observed period carried straight to ${projectUntil} (the plan expiry). The fewer days observed, the rougher the estimate.`
+            )}</p>`
+          : ''
+      }
     </section>`;
 }
 

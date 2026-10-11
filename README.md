@@ -152,8 +152,8 @@ the rounding of the displayed values.
 - One card per phone number: total usage after cleanup, high-usage count / total / share, ignored count, largest and average record
 - Daily usage bar chart (a flag marks days with a single record above 50 MB)
 - Cumulative usage line chart with the current average rate projected forward to
-  `--project-until` (the plan expiry by default), so you can see where the usage
-  is heading
+  `--project-until` (the plan expiry by default), plus a "Projected by" column in
+  the all-accounts overview table, so you can see where each number is heading
 - Usage detail table (newest first): date, time, type, country, usage, distribution, share, status
 - Daily summary table: records, usage, share, largest record, high-usage count
 - Cleanup rules and data quality: thresholds, footer cross-check, excluded call/SMS counts
