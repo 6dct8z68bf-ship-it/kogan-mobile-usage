@@ -8,6 +8,15 @@ const { execFile } = require('child_process');
 const { loadEnv, collectAccounts, resolveEnvPath } = require('./env');
 const { parseUsageHtml } = require('./parse-usage');
 const { cleanUsage } = require('./clean-usage');
+const {
+  addArchive,
+  dueIso,
+  emptyIndex,
+  hasFrozenOn,
+  lastCoveredIso,
+  loadIndex,
+  saveIndex,
+} = require('./archive-index');
 const { renderReport } = require('./render-report');
 const { fetchUsageForAccount, KoganError, maskMsisdn } = require('./kogan-client');
 const { createTranslator, usageText, normalizeLang, DEFAULT_LANG } = require('./i18n');
@@ -35,6 +44,12 @@ const VALUE_FLAGS = new Set([
   'lang',
   'out',
   'save-raw',
+  'archive-dir',
+  'archive-index',
+  'archive-anchor',
+  'archive-every-months',
+  'archive-today',
+  'base-url',
 ]);
 
 /** Command line errors carry a message key so they can be translated later. */
@@ -231,6 +246,17 @@ function analyseParsed(parsed, settings, scope) {
   return analysis;
 }
 
+/** The data range a report covers, in ISO, or null when it has no rows at all. */
+function reportRange(analyses) {
+  const dates = [];
+  for (const analysis of analyses) {
+    for (const day of analysis.days) if (day.dateIso) dates.push(day.dateIso);
+  }
+  if (!dates.length) return null;
+  dates.sort();
+  return { fromIso: dates[0], toIso: dates[dates.length - 1] };
+}
+
 /** Translate a parser failure code into a human readable message. */
 function parseErrorMessage(t, parsed) {
   if (parsed.error === 'TABLE_NOT_FOUND') {
@@ -309,6 +335,15 @@ async function main() {
       ),
       mbBase: toPositiveNumber(pick(options.values['mb-base'], env.KOGAN_MB_BASE, 1048576), 1048576, '--mb-base'),
       projectUntil: pick(options.values['project-until'], env.KOGAN_PROJECT_UNTIL, '2027-10-06'),
+      archiveDir: pick(options.values['archive-dir'], env.KOGAN_ARCHIVE_DIR, ''),
+      archiveIndex: pick(options.values['archive-index'], env.KOGAN_ARCHIVE_INDEX, ''),
+      archiveAnchor: pick(options.values['archive-anchor'], env.KOGAN_ARCHIVE_ANCHOR, ''),
+      archiveEveryMonths: toPositiveNumber(
+        pick(options.values['archive-every-months'], env.KOGAN_ARCHIVE_EVERY_MONTHS, 5),
+        5,
+        '--archive-every-months'
+      ),
+      baseUrl: pick(options.values['base-url'], env.KOGAN_BASE_URL, ''),
     };
   } catch (err) {
     if (!(err instanceof CliError)) throw err;
@@ -319,6 +354,19 @@ async function main() {
 
   const outFile = path.resolve(cwd, pick(options.values.out, env.KOGAN_OUT_FILE, 'out/usage-report.html'));
   const rawDir = path.resolve(cwd, pick(options.values['save-raw'], env.KOGAN_RAW_DIR, 'out/raw'));
+
+  /*
+   * Where the frozen reports live and with which links they are published.
+   * `archiveDir` is the directory on the published site (for example
+   * pages/archive), and the base URL is what makes the links work from the site
+   * root and from inside that directory alike.
+   */
+  const archiveDir = settings.archiveDir ? path.resolve(cwd, settings.archiveDir) : '';
+  const archiveIndex = archiveDir
+    ? path.resolve(cwd, settings.archiveIndex || path.join(archiveDir, 'archives.json'))
+    : '';
+  const baseUrl = settings.baseUrl ? `${String(settings.baseUrl).replace(/\/+$/, '')}/` : '';
+  const today = pick(options.values['archive-today'], '', formatNowSydney().slice(0, 10));
 
   const analyses = [];
   const failures = [];
@@ -437,9 +485,67 @@ async function main() {
     return;
   }
 
+  /*
+   * The freeze: every few months a copy of this report is published beside it and
+   * is never touched again, so the days Kogan has since dropped stay readable.
+   *
+   * The copy is the report itself, byte for byte -- there is nothing to convert
+   * and no data to carry forward -- and every link between the two is absolute,
+   * which is what lets the same page work from the site root and from inside the
+   * archive directory.
+   *
+   * Five months against a six month window is deliberate: each freeze reaches a
+   * month further back than the previous one ended, so a late run (or a skipped
+   * month) still overlaps instead of leaving a hole. That also makes the catch-up
+   * rule trivial: as long as the newest frozen report does not cover the due date
+   * yet, this run freezes.
+   */
+  const range = reportRange(analyses);
+  const archive = { dir: archiveDir, file: null, index: null, nav: null, due: null };
+
+  if (archiveDir && range) {
+    try {
+      archive.index = loadIndex(archiveIndex);
+    } catch (err) {
+      // Reading a broken list as "no frozen reports" would publish a site without
+      // them, so this stops the run instead.
+      log(t('archiveIndexUnreadable', path.relative(cwd, archiveIndex) || archiveIndex, err.message));
+      process.exitCode = 1;
+      return;
+    }
+
+    const anchor = settings.archiveAnchor || (archive.index && archive.index.anchor) || range.fromIso;
+    const everyMonths = settings.archiveEveryMonths || (archive.index && archive.index.everyMonths) || undefined;
+    archive.due = dueIso(archive.index, { anchor, everyMonths });
+
+    const covered = lastCoveredIso(archive.index);
+    const due = archive.due && today >= archive.due;
+    const extendsCoverage = !covered || range.toIso > covered;
+
+    if (due && extendsCoverage && !hasFrozenOn(archive.index, today)) {
+      archive.file = path.join(archiveDir, `usage-${today}.html`);
+      archive.index = addArchive(archive.index || emptyIndex({ anchor, everyMonths }), {
+        file: path.basename(archive.file),
+        from: range.fromIso,
+        to: range.toIso,
+        frozenAt: today,
+      });
+    }
+
+    const entries = ((archive.index && archive.index.archives) || []).map((entry) => ({
+      file: entry.file,
+      href: `${baseUrl}archive/${entry.file}`,
+      from: entry.from,
+      to: entry.to,
+      frozenAt: entry.frozenAt,
+    }));
+    if (entries.length) archive.nav = { currentHref: baseUrl || './', entries };
+  }
+
   const html = renderReport({
     analyses,
     generatedAt: formatNowSydney(),
+    archiveNav: archive.nav,
     lang,
     redact: settings.redact,
     hideNames: settings.hideNames,
@@ -451,6 +557,28 @@ async function main() {
   fs.mkdirSync(path.dirname(outFile), { recursive: true });
   fs.writeFileSync(outFile, html, 'utf8');
   log(t('reportWritten', outFile));
+
+  if (archive.file) {
+    const shown = path.relative(cwd, archive.file) || archive.file;
+    if (failures.length) {
+      // A frozen copy missing an account would be missing it for good, so it waits
+      // for a run where every account came through.
+      log(t('archiveFreezeDeferred', shown));
+    } else {
+      fs.mkdirSync(path.dirname(archive.file), { recursive: true });
+      fs.copyFileSync(outFile, archive.file);
+      saveIndex(archiveIndex, archive.index);
+      log(t('archiveFrozen', shown, range.fromIso, range.toIso));
+    }
+  } else if (archiveDir) {
+    log(
+      t(
+        'archiveNextFreeze',
+        archive.due || '—',
+        ((archive.index && archive.index.archives) || []).length
+      )
+    );
+  }
 
   if (failures.length) {
     log('');

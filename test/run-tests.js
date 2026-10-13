@@ -2,7 +2,9 @@
 'use strict';
 
 const assert = require('assert');
+const childProcess = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const { parseDurationOrSize, toMb } = require('../src/units');
@@ -11,6 +13,7 @@ const { cleanUsage, buildProjection } = require('../src/clean-usage');
 const { renderReport, fmtMb } = require('../src/render-report');
 const { parseEnvFile, collectAccounts } = require('../src/env');
 const { maskPhoneNumber } = require('../src/mask');
+const archiveIndex = require('../src/archive-index');
 
 const ROOT = path.join(__dirname, '..');
 const FIXTURE = path.join(ROOT, 'fixtures', 'usage-history-sample.html');
@@ -446,6 +449,163 @@ test('adds the projected total to the overview table', () => {
   assert.ok(table.includes('投射至 06/10/2027'), 'zh projected column header');
   assert.ok(table.includes(fmtMb(first.projection.projectedTotalMb)), 'projected total in the table');
   assert.ok(out.includes('carried straight to 06/10/2027'), 'projection explained under the table');
+});
+
+process.stdout.write('\nfrozen reports\n');
+
+const ANCHOR = '2026-10-06';
+const REPORT_SETTINGS = { mbBase: 1048576, minMb: 1, highlightMb: 50 };
+
+test('the first freeze falls due a set number of months after the anchor', () => {
+  const empty = archiveIndex.emptyIndex({ anchor: ANCHOR, everyMonths: 5 });
+  assert.strictEqual(archiveIndex.dueIso(empty), '2027-03-06');
+  assert.strictEqual(archiveIndex.isDue(empty, '2027-03-05'), false);
+  assert.strictEqual(archiveIndex.isDue(empty, '2027-03-06'), true);
+});
+
+test('after that it counts from the newest data a frozen report covers', () => {
+  const first = archiveIndex.addArchive(archiveIndex.emptyIndex({ anchor: ANCHOR, everyMonths: 5 }), {
+    file: 'usage-2027-03-10.html',
+    from: '2026-10-06',
+    to: '2027-03-10',
+    frozenAt: '2027-03-10',
+  });
+  assert.strictEqual(archiveIndex.dueIso(first), '2027-08-10');
+  assert.strictEqual(archiveIndex.lastCoveredIso(first), '2027-03-10');
+});
+
+test('a run that is late still freezes, and does not freeze twice in a day', () => {
+  const empty = archiveIndex.emptyIndex({ anchor: ANCHOR, everyMonths: 5 });
+  assert.strictEqual(archiveIndex.isDue(empty, '2027-09-01'), true, 'months late is still due');
+
+  const frozenToday = archiveIndex.addArchive(empty, {
+    file: 'usage-2027-03-06.html',
+    from: '2026-10-06',
+    to: '2026-10-12',
+    frozenAt: '2027-03-06',
+  });
+  assert.strictEqual(archiveIndex.hasFrozenOn(frozenToday, '2027-03-06'), true);
+});
+
+test('the index survives a round trip and rejects nonsense', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kogan-freeze-'));
+  const file = path.join(dir, 'archive', 'archives.json');
+
+  assert.strictEqual(archiveIndex.loadIndex(file), null, 'missing file reads as no archive');
+
+  let index = archiveIndex.emptyIndex({ anchor: ANCHOR, everyMonths: 5 });
+  index = archiveIndex.addArchive(index, { file: 'usage-2027-03-06.html', from: '2026-10-06', to: '2026-10-12', frozenAt: '2027-03-06' });
+  index = archiveIndex.addArchive(index, { file: 'usage-2026-11-06.html', from: '2026-10-06', to: '2026-11-06', frozenAt: '2026-11-06' });
+  archiveIndex.saveIndex(file, index);
+
+  const back = archiveIndex.loadIndex(file);
+  assert.deepStrictEqual(archiveIndex.listFiles(back), ['usage-2026-11-06.html', 'usage-2027-03-06.html']);
+  assert.strictEqual(back.anchor, ANCHOR);
+
+  fs.writeFileSync(file, '{ "version": 1 }');
+  assert.throws(() => archiveIndex.loadIndex(file), /unexpected shape/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('the report links to the frozen copies and they link back', () => {
+  const nav = {
+    currentHref: 'https://example.test/repo/',
+    entries: [
+      {
+        file: 'usage-2027-03-06.html',
+        href: 'https://example.test/repo/archive/usage-2027-03-06.html',
+        from: '2026-10-06',
+        to: '2027-03-06',
+        frozenAt: '2027-03-06',
+      },
+    ],
+  };
+  const out = renderReport({
+    analyses: [analysis],
+    generatedAt: '2027-03-06 08:00 (Australia/Sydney)',
+    archiveNav: nav,
+    settings: REPORT_SETTINGS,
+  });
+  assert.ok(out.includes('https://example.test/repo/archive/usage-2027-03-06.html'), 'link to the frozen copy');
+  assert.ok(out.includes('href="https://example.test/repo/"'), 'link back to the current report');
+  assert.ok(out.includes('2026-10-06 → 2027-03-06'), 'the period is shown on the link');
+
+  const plain = renderReport({
+    analyses: [analysis],
+    generatedAt: '2026-10-13 08:00 (Australia/Sydney)',
+    settings: REPORT_SETTINGS,
+  });
+  assert.ok(!plain.includes('<nav class="archive-nav">'), 'no navigation before the first freeze');
+});
+
+test('a run freezes a copy of the report it just published', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kogan-freeze-run-'));
+  const archiveDir = path.join(dir, 'pages', 'archive');
+  const report = path.join(dir, 'usage-report.html');
+
+  const run = childProcess.spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, 'src', 'index.js'),
+      '--fixture',
+      FIXTURE,
+      '--mask-numbers',
+      '--out',
+      report,
+      '--archive-dir',
+      archiveDir,
+      '--base-url',
+      'https://example.test/repo/',
+      '--archive-anchor',
+      ANCHOR,
+      '--archive-today',
+      '2027-03-06',
+    ],
+    { encoding: 'utf8' }
+  );
+  assert.strictEqual(run.status, 0, run.stdout + run.stderr);
+
+  const frozen = path.join(archiveDir, 'usage-2027-03-06.html');
+  assert.ok(fs.existsSync(frozen), 'the frozen copy is written');
+  assert.deepStrictEqual(
+    fs.readFileSync(frozen),
+    fs.readFileSync(report),
+    'the frozen copy is the published report, byte for byte'
+  );
+
+  const index = archiveIndex.loadIndex(path.join(archiveDir, 'archives.json'));
+  assert.deepStrictEqual(archiveIndex.listFiles(index), ['usage-2027-03-06.html']);
+  assert.strictEqual(index.archives[0].from, '2026-10-06');
+  assert.strictEqual(index.archives[0].to, '2026-10-09', 'the period the report covers');
+  assert.strictEqual(index.anchor, ANCHOR);
+
+  // A second run the same day must not freeze again.
+  const again = childProcess.spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, 'src', 'index.js'),
+      '--fixture',
+      FIXTURE,
+      '--mask-numbers',
+      '--out',
+      path.join(dir, 'second.html'),
+      '--archive-dir',
+      archiveDir,
+      '--base-url',
+      'https://example.test/repo/',
+      '--archive-anchor',
+      ANCHOR,
+      '--archive-today',
+      '2027-03-06',
+    ],
+    { encoding: 'utf8' }
+  );
+  assert.strictEqual(again.status, 0, again.stdout + again.stderr);
+  assert.strictEqual(
+    archiveIndex.listFiles(archiveIndex.loadIndex(path.join(archiveDir, 'archives.json'))).length,
+    1
+  );
+  fs.rmSync(dir, { recursive: true, force: true });
 });
 
 process.stdout.write(`\n${passed} passed, ${failed} failed\n`);

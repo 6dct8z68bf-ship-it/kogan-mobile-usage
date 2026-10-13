@@ -49,6 +49,13 @@ const USAGE = {
   -o, --out <file>         輸出 HTML 路徑（預設 out/usage-report.html）
       --save-raw <dir>     保存抓取到的原始 HTML（預設 out/raw）
       --no-save-raw        不保存原始 HTML
+      --archive-dir <dir>  凍結存檔要放在哪個目錄（例如 Pages 的 pages/archive）
+                           給了才會啟用凍結存檔
+      --archive-anchor <d> 第一次凍結的起算日 YYYY-MM-DD（預設用報告中最早的日期）
+      --archive-every-months <n>
+                           每隔幾個月凍結一份（預設 5）
+      --base-url <url>     報告的公開網址，用來產生絕對連結
+      --archive-index <f>  存檔清單路徑（預設 <archive-dir>/archives.json）
       --open               產生後用系統預設瀏覽器開啟
   -h, --help               顯示本說明
 `,
@@ -83,6 +90,14 @@ Options:
   -o, --out <file>         output HTML path (default out/usage-report.html)
       --save-raw <dir>     keep the fetched raw HTML (default out/raw)
       --no-save-raw        do not keep the fetched raw HTML
+      --archive-dir <dir>  where the frozen reports go (for example pages/archive
+                           on the published site); freezing is off without it
+      --archive-anchor <d> first freeze counts from this day (default: the
+                           earliest date in the report)
+      --archive-every-months <n>
+                           freeze a copy every this many months (default 5)
+      --base-url <url>     public address of the report, used for absolute links
+      --archive-index <f>  path of the archive list (default <archive-dir>/archives.json)
       --open               open the report with the default browser
   -h, --help               show this help
 `,
@@ -106,6 +121,12 @@ const MESSAGES = {
 
     envLoaded: (file, count) => `讀取 ${file}：共 ${count} 個門號`,
     fetchSettings: (months, type) => `抓取參數：近 ${months} 個月 / ${type}`,
+    archiveIndexUnreadable: (file, message) =>
+      `存檔清單 ${file} 無法讀取（${message}）：為避免發佈一份少了存檔的網站，這次不產生報告`,
+    archiveFrozen: (file, from, to) => `已凍結存檔：${file}（涵蓋 ${from} → ${to}）`,
+    archiveFreezeDeferred: (file) =>
+      `這次有門號失敗，先不凍結 ${file}（凍結檔缺門號就永遠補不回來），等下一次成功的執行`,
+    archiveNextFreeze: (due, count) => `存檔：目前 ${count} 份，下次凍結日 ${due}`,
     loggingIn: (label) => `登入 ${label} ...`,
     rawSaved: (file) => `  原始 HTML 已存：${file}`,
     accountOk: (account, kept, mb, ignored, high) =>
@@ -170,6 +191,12 @@ const MESSAGES = {
 
     envLoaded: (file, count) => `Reading ${file}: ${count} account(s)`,
     fetchSettings: (months, type) => `Fetch settings: last ${months} month(s) / ${type}`,
+    archiveIndexUnreadable: (file, message) =>
+      `Cannot read the archive list ${file} (${message}): refusing to publish a site without its frozen reports`,
+    archiveFrozen: (file, from, to) => `Frozen: ${file} (covers ${from} -> ${to})`,
+    archiveFreezeDeferred: (file) =>
+      `An account failed this run, so ${file} is not frozen yet (a frozen copy missing an account could never be fixed); the next clean run will do it`,
+    archiveNextFreeze: (due, count) => `Archive: ${count} frozen so far, next freeze due ${due}`,
     loggingIn: (label) => `Signing in as ${label} ...`,
     rawSaved: (file) => `  raw HTML saved: ${file}`,
     accountOk: (account, kept, mb, ignored, high) =>

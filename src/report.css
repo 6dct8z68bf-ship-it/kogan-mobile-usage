@@ -72,6 +72,12 @@ html[data-lang="en"] .i18n-en { display: inline; }
 .page-head .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
 .page-head .brand .txt { letter-spacing: 2.4px; font-size: 12px; color: #d7dbe2; text-transform: uppercase; }
 
+.archive-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; border: 1px solid var(--line); background: #fcfcfd; border-radius: 10px; padding: 10px 13px; margin: 0 0 18px; font-size: 13px; }
+.archive-nav .title { color: var(--muted); font-size: 12px; letter-spacing: .2px; }
+.archive-nav .archive-link { color: #1b1d23; text-decoration: none; border-bottom: 1px solid var(--line-strong); font-variant-numeric: tabular-nums; }
+.archive-nav .archive-link:hover { color: var(--accent); border-color: var(--accent); }
+.archive-nav .archive-link.is-current { font-weight: 650; }
+
 section.account {
   background: var(--panel);
   border: 1px solid var(--line);

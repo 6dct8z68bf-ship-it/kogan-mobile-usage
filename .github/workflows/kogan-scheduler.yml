@@ -94,9 +94,56 @@ jobs:
           } > .env
           echo "wrote .env with $(wc -l < .env) settings"
 
+      # Kogan only ever shows a moving window (1, 3 or 6 months), so the day that
+      # leaves that window is gone from the site for good. The way out here is a
+      # freeze: every five months a copy of the published report is published
+      # beside it and is never touched again.
+      #
+      # The site is rebuilt from scratch on every deploy, so those frozen copies
+      # have to be fetched from the live site and handed to the next deploy. If one
+      # of them cannot be fetched the run stops before publishing anything, which
+      # leaves the site -- and the frozen copies on it -- exactly as they were.
+      - name: Restore the frozen reports
+        env:
+          PAGES_URL: ${{ vars.KOGAN_PAGES_URL }}
+        run: |
+          set -euo pipefail
+          base="${PAGES_URL:-https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}}"
+          base="${base%/}/"
+          echo "PAGES_BASE=${base}" >> "${GITHUB_ENV}"
+          mkdir -p pages/archive
+
+          url="${base}archive/archives.json?t=$(date +%s)"
+          code=$(curl -sS -L --retry 5 --retry-all-errors --retry-delay 3 \
+            -o pages/archive/archives.json -w '%{http_code}' "${url}" || echo 000)
+          if [ "${code}" = "404" ]; then
+            echo "nothing frozen yet; the first freeze falls due five months after the anchor"
+            rm -f pages/archive/archives.json
+            exit 0
+          fi
+          if [ "${code}" != "200" ]; then
+            echo "::error::cannot read the archive list (HTTP ${code}); nothing is published, so nothing is lost"
+            exit 1
+          fi
+
+          for file in $(node src/archive-index.js list pages/archive/archives.json); do
+            code=$(curl -sS -L --retry 5 --retry-all-errors --retry-delay 3 \
+              -o "pages/archive/${file}" -w '%{http_code}' "${base}archive/${file}?t=$(date +%s)" || echo 000)
+            if [ "${code}" != "200" ]; then
+              echo "::error::cannot restore archive/${file} (HTTP ${code}); nothing is published, so nothing is lost"
+              exit 1
+            fi
+            if ! grep -q 'data-report-id' "pages/archive/${file}"; then
+              echo "::error::archive/${file} does not look like a report"
+              exit 1
+            fi
+            echo "restored archive/${file}"
+          done
+
       - name: Generate the report
         env:
           LOG_FILE: ${{ runner.temp }}/usage-report.log
+          VAR_ARCHIVE_ANCHOR: ${{ vars.KOGAN_ARCHIVE_ANCHOR }}
         run: |
           set -euo pipefail
           mkdir -p out
@@ -107,7 +154,16 @@ jobs:
           #   --mask-numbers  -> 040****123      --redact -> Account 1
           # The owner names are treated as public nicknames; add --hide-names if
           # they should not be published either.
-          node src/index.js --no-save-raw --mask-numbers --out out/usage-report.html 2>&1 | tee "${LOG_FILE}"
+          #
+          # --archive-dir turns on the freeze: every five months (counted from the
+          # anchor) this run also publishes a copy of the report as
+          # archive/usage-<date>.html, which is never touched again. Five months
+          # against a six month window means each copy reaches a month further back
+          # than the previous one ended, so a late run still overlaps.
+          node src/index.js --no-save-raw --mask-numbers --out out/usage-report.html \
+            --archive-dir pages/archive \
+            --base-url "${PAGES_BASE}" \
+            --archive-anchor "${VAR_ARCHIVE_ANCHOR:-2026-10-06}" 2>&1 | tee "${LOG_FILE}"
 
       - name: Upload the report as an artifact
         uses: actions/upload-artifact@v7

@@ -73,6 +73,11 @@ Node.js LTS if you want this tool to be independent of Codex.
 | `-o`, `--out <file>` | output HTML path | `out/usage-report.html` |
 | `--save-raw <dir>` | keep the fetched raw HTML (useful for debugging) | `out/raw` |
 | `--no-save-raw` | do not keep the fetched raw HTML | — |
+| `--archive-dir <dir>` | where frozen copies of older reports go; freezing is off without it | — |
+| `--archive-anchor <date>` | the first freeze is counted from this day (`YYYY-MM-DD`) | earliest date in the report |
+| `--archive-every-months <n>` | freeze a copy every this many months | `5` |
+| `--archive-index <file>` | path of the list of frozen reports | `<archive-dir>/archives.json` |
+| `--base-url <url>` | public address of the report, used for the links | — |
 | `--open` | open the report with the default browser | — |
 
 `--months` mirrors the dropdown on the website, and that dropdown only offers
@@ -93,7 +98,58 @@ Examples:
 
 Matching `.env` variables: `KOGAN_MONTHS`, `KOGAN_USAGE_TYPE`, `KOGAN_MIN_MB`,
 `KOGAN_HIGHLIGHT_MB`, `KOGAN_MB_BASE`, `KOGAN_LANG`, `KOGAN_OWNERS`,
-`KOGAN_OUT_FILE`. Command line options take precedence over `.env`.
+`KOGAN_OUT_FILE`, `KOGAN_ARCHIVE_DIR`, `KOGAN_ARCHIVE_INDEX`,
+`KOGAN_ARCHIVE_ANCHOR`, `KOGAN_ARCHIVE_EVERY_MONTHS`, `KOGAN_BASE_URL`. Command
+line options take precedence over `.env`.
+
+## Keeping more than the six months Kogan shows
+
+Kogan's Usage History only ever returns a moving window — the 1, 3 or 6 months of
+that dropdown — and the day that leaves the window is gone from the site for
+good. There is no export and no older view to ask for.
+
+So a copy is kept. Every five months the workflow publishes the report twice: the
+current one at the site root, and a freeze of it at `archive/usage-<date>.html`
+which is never touched again. After a year there are two reports, after five years
+about twelve, and each one still covers the six months the site showed on the day
+it was frozen. The two ends link to each other, so the page you open on your phone
+is the way in to all of them.
+
+Why five months against a six month window: each freeze reaches back a month
+further than the previous freeze ended, so a run that is late, or a month that is
+skipped entirely, still overlaps the one before it instead of leaving a hole. The
+freeze date is counted from the anchor (`2026-10-06` by default, the day the first
+account was activated) and then from the newest data the last frozen report
+covered, which is what makes catching up automatic: as long as the newest frozen
+report does not cover the due date yet, the next successful run freezes.
+
+A frozen report is a byte for byte copy of the published report, so there is
+nothing to convert and no data to carry forward. Every link between them is
+absolute (`--base-url`), which is what lets the same page work from the site root
+and from inside `archive/`. The navigation lists the current report and each
+frozen period; older frozen pages list the periods that existed when they were
+frozen, and reach anything newer through the current report.
+
+Two things are deliberate:
+
+- **A run with a failed account does not freeze.** A frozen copy missing an
+  account is missing it for good, so the freeze waits for a run where every
+  account came through. The next successful run still sees the freeze as due.
+- **The site is rebuilt from scratch on every deploy**, so the workflow first
+  downloads every frozen report from the live site and hands it to the next
+  deploy. If any of them cannot be read the run stops before publishing: the site
+  keeps the copy it already has, and nothing is lost.
+
+The one way to lose a period is to have no successful run for longer than the six
+month window — a blocked sign-in or a broken workflow left unnoticed for half a
+year. The frozen reports themselves make that visible: each one records the
+period it covers, so a hole shows up in the navigation as a gap between two
+periods.
+
+Each frozen report is another few megabytes on the site (about 5 MB per six
+months for four accounts at the volume seen so far), and every deploy carries all
+of them along. With a handful of accounts that is a few tens of megabytes, well
+inside what Pages serves.
 
 ## Owner names (optional)
 
@@ -185,6 +241,7 @@ src/http-session.js       small HTTP client (cookie jar + redirects)
 src/kogan-client.js       sign-in, usage page fetching, error classification
 src/parse-usage.js        usage table -> structured data
 src/clean-usage.js        unit conversion, thresholds, highlighting, daily rollups
+src/archive-index.js      the list of frozen reports and when the next one is due
 src/units.js              size and duration parsing
 src/render-report.js      standalone HTML generation
 src/report.css            report styles (inlined into the HTML)
@@ -199,10 +256,17 @@ reference/login-page.html saved sign-in page, kept for debugging comparisons
 
 ## Run it on a schedule with GitHub Actions
 
-`.github/workflows/usage-report.yml` signs in on a schedule, rebuilds the
+`.github/workflows/kogan-scheduler.yml` signs in on a schedule, rebuilds the
 report and publishes it to GitHub Pages. The report is a build output, so it is
 never committed: the repository keeps the source, and the report arrives either
 as the web page or as a workflow artifact with 30 days of retention.
+
+Every run starts by downloading the frozen reports that are on the site right now
+and hands them to this run's deploy, because each deploy replaces the whole site.
+It then builds the report, freezes a copy when one is due (see "Keeping more than
+the six months Kogan shows") and deploys both together. A run that cannot read a
+frozen report stops before publishing anything, so the site keeps the complete
+copy it already has.
 
 It runs at `17 */3 * * *` UTC — every three hours, at 17 minutes past, which is
 02:17, 05:17, 08:17, 11:17, 14:17, 17:17, 20:17 and 23:17 in Sydney. The minute is
@@ -225,7 +289,7 @@ two sets of defaults in step with each other. A repository variable of the same
 name, if you set one, takes priority over both.
 
 The same inputs work from the command line, for example
-`gh workflow run usage-report.yml -f months=3`.
+`gh workflow run kogan-scheduler.yml -f months=3`.
 
 Because nothing is pushed back, the workflow keeps working unchanged even when
 `main` is protected with "Require a pull request before merging".
@@ -296,6 +360,8 @@ Variables**. Anything omitted falls back to the default in the table:
 | `KOGAN_MIN_MB` | `1` |
 | `KOGAN_HIGHLIGHT_MB` | `50` |
 | `KOGAN_LANG` | `en` |
+| `KOGAN_ARCHIVE_ANCHOR` | `2026-10-06` (the first freeze is counted from it) |
+| `KOGAN_PAGES_URL` | worked out from the repository name; set it only for a custom domain |
 
 Do not put credentials in variables: unlike secrets, their values are not masked
 in the workflow log.
@@ -342,7 +408,9 @@ in the workflow log.
 
 This covers unit conversion, `.env` parsing, the sample page (56 rows: 23 kept,
 8 ignored, 5 highlighted, 1103.23 MB total), boundary values, bilingual HTML
-output and owner names.
+output and owner names, plus the frozen-report side: when the next freeze falls
+due, that the frozen copy is a byte for byte copy of the published report, and
+that the two pages link to each other.
 
 ## License
 
