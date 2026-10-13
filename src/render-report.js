@@ -265,6 +265,40 @@ ${rows}
       )}</p>`;
 }
 
+/**
+ * Links between this report and the frozen copies of older ones.
+ *
+ * Every href is absolute (built from the site's own address) and the frozen copy
+ * is a byte for byte copy of the report that was published on the day it was
+ * frozen, so the same markup works from the site root and from inside the archive
+ * directory without either page needing to know where it is.
+ */
+function renderArchiveNav(nav) {
+  const entries = (nav && nav.entries) || [];
+  if (!entries.length) return '';
+
+  const links = [
+    `        <a class="archive-link is-current" href="${esc(nav.currentHref || './')}">${bi(
+      '最新報告',
+      'Current report'
+    )}</a>`,
+  ].concat(
+    entries.map((entry) => {
+      // The period is what the reader cares about; the file name and the freeze
+      // date go in the tooltip so the line stays short.
+      const label = entry.from && entry.to ? `${entry.from} → ${entry.to}` : entry.file;
+      return `        <a class="archive-link" href="${esc(entry.href)}" title="${esc(
+        `${entry.file}${entry.frozenAt ? ` (${entry.frozenAt})` : ''}`
+      )}">${bi(label, label)}</a>`;
+    })
+  );
+
+  return `    <nav class="archive-nav">
+      <span class="title">${bi('報告存檔（Kogan 已不再顯示的期間）', 'Report archive (periods Kogan no longer shows)')}</span>
+${links.join('\n')}
+    </nav>`;
+}
+
 /** 2026-10-06 -> 06/10/2026 */
 function isoToDisplayDate(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
@@ -707,6 +741,7 @@ ${rows}
 function renderReport({
   analyses,
   generatedAt,
+  archiveNav = null,
   settings = {},
   sourceLabel = '',
   lang = DEFAULT_LANG,
@@ -767,6 +802,7 @@ ${STYLES}
     </div>
   </header>
   <div class="wrap">
+${renderArchiveNav(archiveNav)}
 ${renderOverview(analyses, labelOptions, hideNames)}
 ${body}
     <p class="page-foot">${bi(
