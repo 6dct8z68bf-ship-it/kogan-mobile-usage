@@ -247,22 +247,30 @@ function renderChart(analysis) {
     .sort((a, b) => (a.dateIso < b.dateIso ? -1 : 1))
     .map((d) => {
       const width = Math.max(1.5, (d.mb / max) * 100);
-      const cls = d.highlighted > 0 ? 'chart-bar is-high' : 'chart-bar';
+      const cls = d.heavy ? 'chart-bar is-high' : 'chart-bar';
       return `        <div class="chart-row">
           <span class="chart-date">${esc(d.dateDisplay.slice(0, 5))}</span>
           <span class="chart-track"><span class="${cls}" style="width:${width.toFixed(2)}%"></span></span>
-          <span class="chart-val">${esc(fmtMb(d.mb))}${d.highlighted ? ' <em>&#9873;</em>' : ''}</span>
+          <span class="chart-val">${esc(fmtMb(d.mb))}${d.heavy ? ' <em>&#9873;</em>' : ''}</span>
         </div>`;
     })
     .join('\n');
 
+  const note =
+    analysis.config.highlightDayMb > 0
+      ? bi(
+          `⚑ = 當日總量 > ${analysis.config.highlightDayMb} MB（單筆 > ${analysis.config.highlightMb} MB 的記錄另外在明細表標示）。`,
+          `⚑ = a day totalling more than ${analysis.config.highlightDayMb} MB (records above ${analysis.config.highlightMb} MB are marked separately in the detail table).`
+        )
+      : bi(
+          `⚑ = 當日有單筆 > ${analysis.config.highlightMb} MB 的記錄。`,
+          `⚑ = a single record above ${analysis.config.highlightMb} MB that day.`
+        );
+
   return `      <div class="chart">
 ${rows}
       </div>
-      <p class="foot-note">${bi(
-        `⚑ = 當日有單筆 > ${analysis.config.highlightMb} MB 的記錄。`,
-        `⚑ = a single record above ${analysis.config.highlightMb} MB that day.`
-      )}</p>`;
+      <p class="foot-note">${note}</p>`;
 }
 
 /**
@@ -476,7 +484,14 @@ function renderDailyTable(analysis) {
     .map((d) => `          <tr>
             <td class="mono">${esc(d.dateDisplay)}</td>
             <td class="num">${esc(fmtInt(d.count))}</td>
-            <td class="num strong">${esc(fmtMb(d.mb))}</td>
+            <td class="num strong">${esc(fmtMb(d.mb))}${
+              d.heavy
+                ? ` <span class="badge">${bi(
+                    `總量 > ${analysis.config.highlightDayMb} MB`,
+                    `Total > ${analysis.config.highlightDayMb} MB`
+                  )}</span>`
+                : ''
+            }</td>
             <td class="num">${esc(pct((d.mb / total) * 100))}</td>
             <td class="num">${esc(fmtMb(d.maxMb))}</td>
             <td class="num">${d.highlighted ? `<span class="badge">${esc(fmtInt(d.highlighted))}</span>` : '0'}</td>
@@ -585,8 +600,16 @@ function renderRules(analysis) {
           `> ${cfg.highlightMb} MB`,
           `> ${cfg.highlightMb} MB`
         )}</span><div class="note">${bi(
-          `已標記 ${fmtInt(s.highlightedCount)} 筆，合計 ${fmtMb(s.highlightedMb)}`,
-          `${fmtInt(s.highlightedCount)} records flagged, ${fmtMb(s.highlightedMb)} total`
+          `已標記 ${fmtInt(s.highlightedCount)} 筆，合計 ${fmtMb(s.highlightedMb)}${
+            cfg.highlightDayMb > 0
+              ? `；另有 ${fmtInt(s.heavyDays)} 天當日總量 > ${cfg.highlightDayMb} MB（每日圖標記 ⚑）`
+              : ''
+          }`,
+          `${fmtInt(s.highlightedCount)} records flagged, ${fmtMb(s.highlightedMb)} total${
+            cfg.highlightDayMb > 0
+              ? `; ${fmtInt(s.heavyDays)} day(s) went above ${cfg.highlightDayMb} MB in total and are flagged in the daily chart`
+              : ''
+          }`
         )}</div></div>
         <div class="rule"><span class="k">${bi('位元組換算', 'Byte conversion')}</span><span class="v">${bi(
           `1 MB = ${fmtInt(cfg.mbBase)} bytes`,

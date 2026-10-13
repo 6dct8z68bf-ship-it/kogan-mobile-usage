@@ -73,6 +73,7 @@ jobs:
           VAR_TYPE: ${{ inputs.type || vars.KOGAN_USAGE_TYPE }}
           VAR_MIN_MB: ${{ vars.KOGAN_MIN_MB }}
           VAR_HIGHLIGHT_MB: ${{ vars.KOGAN_HIGHLIGHT_MB }}
+          VAR_HIGHLIGHT_DAY_MB: ${{ vars.KOGAN_HIGHLIGHT_DAY_MB }}
         run: |
           set -euo pipefail
           if [ -z "${SECRET_ACCOUNTS}" ]; then
@@ -89,6 +90,7 @@ jobs:
             echo "KOGAN_USAGE_TYPE=${VAR_TYPE:-Data}"
             echo "KOGAN_MIN_MB=${VAR_MIN_MB:-1}"
             echo "KOGAN_HIGHLIGHT_MB=${VAR_HIGHLIGHT_MB:-50}"
+            echo "KOGAN_HIGHLIGHT_DAY_MB=${VAR_HIGHLIGHT_DAY_MB:-600}"
             echo "KOGAN_MB_BASE=1048576"
             echo "KOGAN_LANG=${VAR_LANG:-en}"
           } > .env

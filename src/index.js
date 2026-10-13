@@ -39,6 +39,7 @@ const VALUE_FLAGS = new Set([
   'type',
   'min-mb',
   'highlight-mb',
+  'highlight-day-mb',
   'mb-base',
   'project-until',
   'lang',
@@ -238,6 +239,7 @@ function analyseParsed(parsed, settings, scope) {
     mbBase: settings.mbBase,
     minMb: settings.minMb,
     highlightMb: settings.highlightMb,
+    highlightDayMb: settings.highlightDayMb,
     projectUntil: settings.projectUntil,
   });
   analysis.scope = scope;
@@ -332,6 +334,13 @@ async function main() {
         pick(options.values['highlight-mb'], env.KOGAN_HIGHLIGHT_MB, 50),
         50,
         '--highlight-mb'
+      ),
+      // A day is only flagged when it clears this *and* holds a record above the
+      // per-record threshold; 0 drops the daily half of the rule.
+      highlightDayMb: toPositiveNumber(
+        pick(options.values['highlight-day-mb'], env.KOGAN_HIGHLIGHT_DAY_MB, 600),
+        600,
+        '--highlight-day-mb'
       ),
       mbBase: toPositiveNumber(pick(options.values['mb-base'], env.KOGAN_MB_BASE, 1048576), 1048576, '--mb-base'),
       projectUntil: pick(options.values['project-until'], env.KOGAN_PROJECT_UNTIL, '2027-10-06'),

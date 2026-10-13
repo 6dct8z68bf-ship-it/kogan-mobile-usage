@@ -64,6 +64,7 @@ Node.js LTS if you want this tool to be independent of Codex.
 | `--type <type>` | `All` / `Data` / `SMSMMS` / `Calls` | `Data` |
 | `--min-mb <n>` | ignore records below this many MB | `1` |
 | `--highlight-mb <n>` | highlight records above this many MB | `50` |
+| `--highlight-day-mb <n>` | flag a day in the daily chart when its total is above this many MB (`0` = no daily flag) | `600` |
 | `--mb-base <n>` | bytes per MB for rows shown as `B` (`1048576` binary / `1000000` decimal) | `1048576` |
 | `--project-until <date>` | project the cumulative usage line up to this date (`YYYY-MM-DD`) | `2027-10-06` |
 | `--lang <zh\|en>` | default report language and console language | `zh` |
@@ -97,7 +98,8 @@ Examples:
 (`.\run.cmd` is the same as `node src/index.js`, it just locates Node for you.)
 
 Matching `.env` variables: `KOGAN_MONTHS`, `KOGAN_USAGE_TYPE`, `KOGAN_MIN_MB`,
-`KOGAN_HIGHLIGHT_MB`, `KOGAN_MB_BASE`, `KOGAN_LANG`, `KOGAN_OWNERS`,
+`KOGAN_HIGHLIGHT_MB`, `KOGAN_HIGHLIGHT_DAY_MB`, `KOGAN_MB_BASE`, `KOGAN_LANG`,
+`KOGAN_OWNERS`,
 `KOGAN_OUT_FILE`, `KOGAN_ARCHIVE_DIR`, `KOGAN_ARCHIVE_INDEX`,
 `KOGAN_ARCHIVE_ANCHOR`, `KOGAN_ARCHIVE_EVERY_MONTHS`, `KOGAN_BASE_URL`. Command
 line options take precedence over `.env`.
@@ -192,7 +194,8 @@ node src/index.js --lang en --out out/report-en.html
 | --- | --- |
 | Below `--min-mb` (default 1 MB) | **Ignored**, not listed in the detail table; still counted in the footer as "N records / X MB ignored" |
 | Above `--highlight-mb` (default 50 MB) | **Highlighted**: red row background, red left border, a `High` badge, plus a one-click "Only > 50 MB" filter |
-| Boundaries | Exactly 1 MB is kept; exactly 50 MB is not highlighted (strictly greater only) |
+| A day over `--highlight-day-mb` (default 600 MB) | **Flagged** in the daily chart: ⚑ after the day, and a red bar; the daily summary table tags it too. This is a rule about the day, separate from the per-record one above, so a day can be flagged without holding any single large record. Set `--highlight-day-mb 0` to turn it off |
+| Boundaries | Exactly 1 MB is kept; exactly 50 MB is not highlighted, and exactly 600 MB in a day is not flagged (strictly greater only). The daily total counts the records that survived the ignore threshold |
 | Data only | Rows whose `Type` contains `Data` or whose `Number` is `Internet`; calls and SMS/MMS are counted but excluded from the MB totals |
 | Duplicates | Rows with the same date, time, type, country, number and value are treated as duplicates and dropped (useful when merging several queries) |
 | Units | Everything is normalised before any maths, then displayed back in MB |
@@ -206,7 +209,7 @@ the rounding of the displayed values.
 - Header with the generation time (Australia/Sydney), the source URL and the MB definition used
 - Language switch (Chinese / English, Chinese by default)
 - One card per phone number: total usage after cleanup, high-usage count / total / share, ignored count, largest and average record
-- Daily usage bar chart (a flag marks days with a single record above 50 MB)
+- Daily usage bar chart (a ⚑ flag marks days that top 600 MB in total)
 - Cumulative usage line chart with the current average rate projected forward to
   `--project-until` (the plan expiry by default), plus a "Projected by" column in
   the all-accounts overview table, so you can see where each number is heading
@@ -359,6 +362,7 @@ Variables**. Anything omitted falls back to the default in the table:
 | `KOGAN_USAGE_TYPE` | `Data` |
 | `KOGAN_MIN_MB` | `1` |
 | `KOGAN_HIGHLIGHT_MB` | `50` |
+| `KOGAN_HIGHLIGHT_DAY_MB` | `600` |
 | `KOGAN_LANG` | `en` |
 | `KOGAN_ARCHIVE_ANCHOR` | `2026-10-06` (the first freeze is counted from it) |
 | `KOGAN_PAGES_URL` | worked out from the repository name; set it only for a custom domain |
