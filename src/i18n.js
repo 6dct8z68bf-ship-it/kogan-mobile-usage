@@ -40,6 +40,8 @@ const USAGE = {
       --type <type>        All | Data | SMSMMS | Calls（預設 Data）
       --min-mb <n>         小於此 MB 數忽略（預設 1）
       --highlight-mb <n>   大於此 MB 數 highlight（預設 50）
+      --highlight-day-mb <n>
+                           當日總量大於此 MB 數就在每日圖標記 ⚑（預設 600，0 = 不標記）
       --mb-base <n>        位元組(B)換算基準：1 MB = 多少 bytes（預設 1048576）
       --project-until <d>  累積用量投射的目標日期 YYYY-MM-DD（預設 2027-10-06）
       --lang <zh|en>       輸出語言（預設 zh）
@@ -81,6 +83,9 @@ Options:
       --type <type>        All | Data | SMSMMS | Calls (default Data)
       --min-mb <n>         ignore records below this many MB (default 1)
       --highlight-mb <n>   highlight records above this many MB (default 50)
+      --highlight-day-mb <n>
+                           flag a day in the daily chart when its total is above
+                           this many MB (default 600; 0 turns the flag off)
       --mb-base <n>        bytes per MB for byte-denominated rows (default 1048576)
       --project-until <d>  project cumulative usage up to this date (default 2027-10-06)
       --lang <zh|en>       output language (default zh)

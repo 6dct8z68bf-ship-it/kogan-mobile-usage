@@ -256,6 +256,72 @@ test('boundary values: 1 MB kept, 50 MB not flagged', () => {
   assert.strictEqual(result.stats.highlightedCount, 0);
 });
 
+const DAY_ROW = (time, durationMB) => ({
+  date: '01/01/2026',
+  time,
+  type: 'Domestic Data',
+  country: 'Australia',
+  number: 'Internet',
+  durationMB,
+  charged: 'From Pack',
+});
+
+test('the daily flag follows the total alone, the detail table the single record', () => {
+  const day = (rows) =>
+    cleanUsage({ account: 'TEST', rows }, { minMb: 1, highlightMb: 50, highlightDayMb: 600 }).days[0];
+
+  const singleBig = day([
+    DAY_ROW('10:00:00', '120 MB'),
+    DAY_ROW('11:00:00', '40 MB'),
+    DAY_ROW('12:00:00', '40 MB'),
+  ]);
+  assert.strictEqual(singleBig.highlighted, 1, 'the record itself is still highlighted');
+  assert.strictEqual(singleBig.heavy, false);
+  assert.strictEqual(singleBig.mb, 200);
+
+  const busy = day(
+    Array.from({ length: 15 }, (_, i) => DAY_ROW(`${String(6 + i).padStart(2, '0')}:00:00`, '46.67 MB'))
+  );
+  assert.strictEqual(busy.heavy, true);
+  assert.strictEqual(busy.highlighted, 0);
+  assert.ok(busy.mb > 600, 'heavy without a single standout record');
+});
+
+test('exactly 600 MB in a day is not flagged', () => {
+  const result = cleanUsage(
+    {
+      account: 'TEST',
+      rows: [DAY_ROW('10:00:00', '100 MB'), DAY_ROW('11:00:00', '250 MB'), DAY_ROW('12:00:00', '250 MB')],
+    },
+    { minMb: 1, highlightMb: 50, highlightDayMb: 600 }
+  );
+  assert.strictEqual(result.days[0].mb, 600);
+  assert.strictEqual(result.days[0].heavy, false, 'strictly greater only');
+  assert.strictEqual(result.stats.heavyDays, 0);
+});
+
+test('highlight-day-mb 0 turns the daily flag off, leaving the record rule alone', () => {
+  const result = cleanUsage(
+    { account: 'TEST', rows: [DAY_ROW('10:00:00', '120 MB')] },
+    { minMb: 1, highlightMb: 50, highlightDayMb: 0 }
+  );
+  assert.strictEqual(result.config.highlightDayMb, 0);
+  assert.strictEqual(result.days[0].heavy, false);
+  assert.strictEqual(result.days[0].highlighted, 1, 'the record is still highlighted');
+  assert.strictEqual(result.stats.heavyDays, 0);
+});
+
+test('the report explains the daily flag and keeps the two rules apart', () => {
+  const out = renderReport({
+    analyses: [cleanUsage(parseUsageHtml(html), { minMb: 1, highlightMb: 50, highlightDayMb: 600 })],
+    generatedAt: '2026-10-13 08:00 (Australia/Sydney)',
+    settings: { mbBase: 1048576, minMb: 1, highlightMb: 50, highlightDayMb: 600 },
+  });
+  assert.ok(out.includes('a day totalling more than 600 MB'), 'the chart says what the flag means');
+  assert.ok(out.includes('marked separately in the detail table'), 'the two rules are told apart');
+  assert.ok(out.includes('600 MB in total'), 'the rules block reports the daily threshold');
+});
+
 test('projects the average rate forward to the plan expiry', () => {
   const synthetic = {
     account: 'TEST',

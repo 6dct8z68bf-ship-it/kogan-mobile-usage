@@ -116,12 +116,19 @@ function rowKey(record) {
  *   mbBase        bytes per MB for byte rows (default 1048576)
  *   minMb         ignore records below this many MB (default 1)
  *   highlightMb   highlight records above this many MB (default 50)
+ *   highlightDayMb  flag a day whose total is above this many MB (default 600;
+ *                   0 turns the daily flag off). The per-record highlightMb rule
+ *                   is separate and always applies to the rows themselves.
  *   dedupe        drop exact duplicate rows (default true)
  */
 function cleanUsage(parsed, options = {}) {
   const mbBase = Number(options.mbBase) > 0 ? Number(options.mbBase) : DEFAULT_BYTE_BASE;
   const minMb = Number.isFinite(Number(options.minMb)) ? Number(options.minMb) : 1;
   const highlightMb = Number.isFinite(Number(options.highlightMb)) ? Number(options.highlightMb) : 50;
+  const highlightDayMb =
+    options.highlightDayMb === undefined || options.highlightDayMb === null
+      ? 600
+      : Number(options.highlightDayMb) || 0;
   const dedupe = options.dedupe !== false;
 
   const dataRecords = [];
@@ -218,6 +225,19 @@ function cleanUsage(parsed, options = {}) {
   const days = [...dailyMap.values()]
     .sort((a, b) => (a.dateIso < b.dateIso ? 1 : -1));
 
+  /*
+   * Two separate rules, on purpose: `highlighted` marks individual records above
+   * highlightMb in the detail table, while `heavy` marks a *day* whose total is
+   * above highlightDayMb and is what the daily chart flags. A day can be one, the
+   * other, both or neither, and the report says which is which.
+   *
+   * The daily total only counts the records that survived the ignore threshold,
+   * which is the same set the daily chart draws.
+   */
+  for (const day of days) {
+    day.heavy = highlightDayMb > 0 && day.mb > highlightDayMb;
+  }
+
   const projection = buildProjection(days, options);
 
   const voiceSeconds = voiceRecords.reduce((sum, r) => sum + r.seconds, 0);
@@ -238,7 +258,7 @@ function cleanUsage(parsed, options = {}) {
     footer: parsed.footer,
     note: parsed.note,
     columns: parsed.columns,
-    config: { mbBase, minMb, highlightMb, dedupe },
+    config: { mbBase, minMb, highlightMb, highlightDayMb, dedupe },
     kept,
     ignored,
     highlighted,
@@ -258,6 +278,7 @@ function cleanUsage(parsed, options = {}) {
       highlightedCount: highlighted.length,
       highlightedMb,
       highlightedSharePct: totalMb > 0 ? (highlightedMb / totalMb) * 100 : 0,
+      heavyDays: days.filter((d) => d.heavy).length,
       ignoredSharePct: rawTotalMb > 0 ? (ignoredMb / rawTotalMb) * 100 : 0,
       duplicateCount,
       invalidCount,
