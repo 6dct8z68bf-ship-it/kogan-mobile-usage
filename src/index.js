@@ -467,7 +467,10 @@ async function main() {
         analysis.requestedType = settings.type;
         analysis.requestedMonths = settings.months;
         analyses.push(analysis);
-        const who = account.name ? `${account.name} · ${parsed.account || masked}` : parsed.account || masked;
+        // The label parsed back from the Kogan page is a full phone number, so
+        // it must never reach stdout: the workflow tees this output straight
+        // into the (public) Actions log. Always log the masked form.
+        const who = account.name ? `${account.name} · ${masked}` : masked;
         log(
           t(
             'accountOk',
