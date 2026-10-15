@@ -323,7 +323,7 @@ The same run publishes the report to GitHub Pages, so the latest version is one
 tap away on a phone:
 
 ```
-https://6dct8z68bf-ship-it.github.io/kogan-mobile-data-usage/
+https://6dct8z68bf-ship-it.github.io/kogan-mobile-usage/
 ```
 
 Because both the repository and that page are public, the workflow always runs

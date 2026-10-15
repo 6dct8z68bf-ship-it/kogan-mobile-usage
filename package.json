@@ -1,5 +1,5 @@
 {
-  "name": "kogan-mobile-data-usage",
+  "name": "kogan-mobile-usage",
   "version": "1.0.0",
   "private": true,
   "description": "Sign in to Kogan Mobile, fetch the usage history data usage, clean it up and render a standalone HTML report",
