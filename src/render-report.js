@@ -477,43 +477,6 @@ ${rows}
       </div>`;
 }
 
-function renderDailyTable(analysis) {
-  if (!analysis.days.length) return '';
-  const total = analysis.stats.totalMb || 1;
-  const rows = analysis.days
-    .map((d) => `          <tr>
-            <td class="mono">${esc(d.dateDisplay)}</td>
-            <td class="num">${esc(fmtInt(d.count))}</td>
-            <td class="num strong">${esc(fmtMb(d.mb))}${
-              d.heavy
-                ? ` <span class="badge">${bi(
-                    `總量 > ${analysis.config.highlightDayMb} MB`,
-                    `Total > ${analysis.config.highlightDayMb} MB`
-                  )}</span>`
-                : ''
-            }</td>
-            <td class="num">${esc(pct((d.mb / total) * 100))}</td>
-            <td class="num">${esc(fmtMb(d.maxMb))}</td>
-            <td class="num">${d.highlighted ? `<span class="badge">${esc(fmtInt(d.highlighted))}</span>` : '0'}</td>
-          </tr>`)
-    .join('\n');
-
-  return `      <h3 class="block-title">${bi('每日彙總', 'Daily summary')}</h3>
-      <div class="table-shell">
-        <table>
-          <thead>
-            <tr>
-              <th>${bi('日期', 'Date')}</th><th class="num">${bi('筆數', 'Records')}</th><th class="num">${bi('當日用量', 'Usage')}</th>
-              <th class="num">${bi('佔比', 'Percent')}</th><th class="num">${bi('最大單筆', 'Largest')}</th><th class="num">${bi(`>${analysis.config.highlightMb} MB`, `>${analysis.config.highlightMb} MB`)}</th>
-            </tr>
-          </thead>
-          <tbody>
-${rows}
-          </tbody>
-        </table>
-      </div>`;
-}
-
 function footerMbFrom(footer) {
   if (!footer || footer.dataAmount === null || footer.dataAmount === undefined) return null;
   const unit = String(footer.dataUnit || 'MB').toUpperCase();
@@ -663,7 +626,6 @@ ${renderChart(analysis)}
 ${renderUsageChart(analysis)}
       <h3 class="block-title">${bi('用量明細（新 → 舊）', 'Usage detail (newest first)')}</h3>
 ${renderDetailTable(analysis)}
-${renderDailyTable(analysis)}
 ${renderRules(analysis)}
     </section>`;
 }
