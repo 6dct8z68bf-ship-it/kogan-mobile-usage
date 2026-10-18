@@ -377,6 +377,42 @@ test('renders a standalone HTML report with the key elements', () => {
   assert.ok(!out.includes('NaN'));
 });
 
+test('the daily chart carries each day of records underneath its bar', () => {
+  const out = renderReport({
+    analyses: [analysis],
+    generatedAt: '2026-10-13 08:00 (Australia/Sydney)',
+    settings: { mbBase: 1048576, minMb: 1, highlightMb: 50, highlightDayMb: 600 },
+  });
+
+  const starts = [...out.matchAll(/<div class="day" data-date="([^"]+)"/g)];
+  assert.strictEqual(starts.length, analysis.days.length, 'one block per day');
+
+  let rows = 0;
+  starts.forEach((match, i) => {
+    const from = match.index;
+    const to = i + 1 < starts.length ? starts[i + 1].index : out.indexOf('<p class="foot-note">', from);
+    const block = out.slice(from, to);
+    const iso = match[1];
+    const dates = [...block.matchAll(/<td class="mono">(\d{2}\/\d{2}\/\d{4})<\/td>/g)].map((m) => m[1]);
+
+    assert.ok(dates.length > 0, `day ${iso} has its records`);
+    dates.forEach((display) => {
+      const [d, m, y] = display.split('/');
+      assert.strictEqual(`${y}-${m}-${d}`, iso, 'a day only lists its own records');
+    });
+    rows += dates.length;
+
+    assert.ok(block.includes('data-filter="all"'), 'the day keeps the all-records filter');
+    assert.ok(block.includes('data-filter="high"'), 'and the > 50 MB filter');
+  });
+
+  assert.strictEqual(rows, analysis.kept.length, 'every record is still there, once');
+  assert.ok(!out.includes('Usage detail (newest first)'), 'the fixed table is gone');
+  assert.ok(!out.includes('用量明細（新 → 舊）'), 'the fixed heading is gone');
+  assert.ok(out.includes('Hover or tap a day to see its records'), 'the hint explains the interaction');
+  assert.ok(out.includes('class="no-js"'), 'the records remain visible without JavaScript');
+});
+
 test('adds an overview table for multiple accounts', () => {
   const secondHtml = html.replace('0400 000 001', '0400 000 099');
   const second = cleanUsage(parseUsageHtml(secondHtml), { minMb: 1, highlightMb: 50 });
