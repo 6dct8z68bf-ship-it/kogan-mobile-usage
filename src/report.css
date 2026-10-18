@@ -117,6 +117,7 @@ section.account {
 
 h3.block-title { font-size: 15px; margin: 24px 0 10px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
 h3.block-title::before { content: ""; width: 4px; height: 15px; border-radius: 2px; background: var(--accent); }
+.block-hint { font-weight: 400; font-size: 12.5px; color: var(--muted); letter-spacing: 0; }
 
 .chart {
   display: flex;
@@ -134,6 +135,22 @@ h3.block-title::before { content: ""; width: 4px; height: 15px; border-radius: 2
 .chart-bar.is-high { background: linear-gradient(90deg, #d81f36, #ef5b6d); }
 .chart-val { text-align: right; color: #3f4653; font-variant-numeric: tabular-nums; }
 .chart-val em { color: var(--high-line); font-style: normal; font-size: 12px; }
+
+/* Each day's records unfold right under its bar. Hovering is enough on a mouse;
+   tapping or focusing pins the day open. */
+.chart-row { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: 0 -4px; }
+.chart-row:hover, .day.is-open > .chart-row { background: #f1f3f6; }
+.chart-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.day-detail { display: none; margin: 2px 0 10px 84px; }
+.day:hover > .day-detail,
+.day:focus-within > .day-detail,
+.day.is-open > .day-detail,
+.no-js .day-detail { display: block; }
+.day-detail .toolbar { margin: 4px 0 8px; }
+.day-detail .table-shell { max-height: 45vh; }
+@media (max-width: 720px) {
+  .day-detail { margin-left: 0; }
+}
 
 /* Cumulative usage line chart (inline SVG, no external library) */
 .line-chart {
@@ -232,6 +249,7 @@ tr.row-high td:first-child { box-shadow: inset 4px 0 0 var(--high-line); }
   .toolbar { display: none; }
   .lang-switch { display: none; }
   .table-shell { max-height: none; overflow: visible; }
+  .day-detail { display: block !important; margin-left: 0; }
   thead th { position: static; }
   tr.row-high, .chart-bar, .mini-bar, .badge {
     -webkit-print-color-adjust: exact;
