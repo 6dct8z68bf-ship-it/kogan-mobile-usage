@@ -409,7 +409,7 @@ test('the daily chart carries each day of records underneath its bar', () => {
   assert.strictEqual(rows, analysis.kept.length, 'every record is still there, once');
   assert.ok(!out.includes('Usage detail (newest first)'), 'the fixed table is gone');
   assert.ok(!out.includes('用量明細（新 → 舊）'), 'the fixed heading is gone');
-  assert.ok(out.includes('Hover or tap a day to see its records'), 'the hint explains the interaction');
+  assert.ok(out.includes('Click a day to see its records'), 'the hint explains the interaction');
   assert.ok(out.includes('class="no-js"'), 'the records remain visible without JavaScript');
 });
 
