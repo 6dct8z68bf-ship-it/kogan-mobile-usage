@@ -213,7 +213,8 @@ the rounding of the displayed values.
 - Cumulative usage line chart with the current average rate projected forward to
   `--project-until` (the plan expiry by default), plus a "Projected by" column in
   the all-accounts overview table, so you can see where each number is heading
-- Daily usage rows: hovering (or tapping) a day unfolds its records in place —
+- Daily usage rows: clicking a day unfolds its records in place (click again to
+  close) —
   date, time, type, country, usage, distribution, share, status — with the "all /
   only > 50 MB" filter kept per day. There is no separate fixed table below the
   chart any more, because it sat hundreds of rows away from the bar being pointed
