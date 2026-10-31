@@ -10,7 +10,7 @@ const path = require('path');
 const { parseDurationOrSize, toMb } = require('../src/units');
 const { parseUsageHtml } = require('../src/parse-usage');
 const { cleanUsage, buildProjection } = require('../src/clean-usage');
-const { renderReport, fmtMb } = require('../src/render-report');
+const { renderReport, fmtMb, groupByMonth } = require('../src/render-report');
 const { parseEnvFile, collectAccounts } = require('../src/env');
 const { maskPhoneNumber } = require('../src/mask');
 const archiveIndex = require('../src/archive-index');
@@ -409,8 +409,9 @@ test('the daily chart carries each day of records underneath its bar', () => {
   assert.strictEqual(rows, analysis.kept.length, 'every record is still there, once');
   assert.ok(!out.includes('Usage detail (newest first)'), 'the fixed table is gone');
   assert.ok(!out.includes('用量明細（新 → 舊）'), 'the fixed heading is gone');
-  assert.ok(out.includes('Click a day to see its records'), 'the hint explains the interaction');
+  assert.ok(out.includes('Open a month, then click a day'), 'the hint explains the interaction');
   assert.ok(out.includes('class="no-js"'), 'the records remain visible without JavaScript');
+  assert.ok(out.includes('.no-js .month-body'), 'the stylesheet opens the month groups without JavaScript');
 });
 
 test('adds an overview table for multiple accounts', () => {
@@ -551,6 +552,49 @@ test('adds the projected total to the overview table', () => {
   assert.ok(table.includes('投射至 06/10/2027'), 'zh projected column header');
   assert.ok(table.includes(fmtMb(first.projection.projectedTotalMb)), 'projected total in the table');
   assert.ok(out.includes('carried straight to 06/10/2027'), 'projection explained under the table');
+});
+
+process.stdout.write('\nmonth grouping\n');
+
+test('groups the days by month, oldest first, without touching the input', () => {
+  const days = [{ dateIso: '2026-10-09' }, { dateIso: '2026-09-30' }, { dateIso: '2026-10-01' }];
+  const groups = groupByMonth(days);
+  assert.deepStrictEqual(groups.map((g) => g.key), ['2026-09', '2026-10']);
+  assert.deepStrictEqual(groups[1].days.map((d) => d.dateIso), ['2026-10-01', '2026-10-09']);
+  assert.strictEqual(days[0].dateIso, '2026-10-09', 'the input keeps its order');
+});
+
+test('every month starts closed and shows its own total', () => {
+  const settings = { mbBase: 1048576, minMb: 1, highlightMb: 50 };
+  const sepDay = { ...analysis.days[0], dateIso: '2026-09-30', dateDisplay: '30/09/2026' };
+  const twoMonths = { ...analysis, scope: 'account-1', days: [sepDay, ...analysis.days] };
+  const out = renderReport({
+    analyses: [twoMonths],
+    generatedAt: '2026-10-10 12:00 (Australia/Sydney)',
+    settings,
+  });
+
+  assert.strictEqual((out.match(/class="month"/g) || []).length, 2, 'one block per month');
+  assert.ok(out.indexOf('data-month="2026-09"') < out.indexOf('data-month="2026-10"'), 'oldest month first');
+  assert.ok(!out.includes('month is-open'), 'no month is open on load');
+  assert.strictEqual((out.match(/class="month-head" aria-expanded="false"/g) || []).length, 2);
+
+  const octTotal = analysis.days.reduce((sum, d) => sum + d.mb, 0);
+  const october = out.match(/<div class="month" data-month="2026-10">[\s\S]*?<\/button>/)[0];
+  assert.ok(october.includes(fmtMb(octTotal)), 'month total in the closed header');
+  assert.ok(october.includes(`${analysis.days.length} days`), 'day count in the closed header');
+  assert.ok(october.includes('width:100.00%'), 'the busiest month fills the comparison bar');
+
+  const september = out.match(/<div class="month" data-month="2026-09">[\s\S]*?<\/button>/)[0];
+  assert.ok(september.includes(fmtMb(sepDay.mb)), 'a partial month reports its own total');
+  assert.ok(september.includes('1 day'), 'singular day count');
+
+  assert.strictEqual(
+    (out.match(/class="day" data-date=/g) || []).length,
+    twoMonths.days.length,
+    'every day is still rendered inside its month'
+  );
+  assert.strictEqual((out.match(/class="month-body" id=/g) || []).length, 2, 'each month has its own body');
 });
 
 process.stdout.write('\nfrozen reports\n');

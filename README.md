@@ -194,7 +194,7 @@ node src/index.js --lang en --out out/report-en.html
 | --- | --- |
 | Below `--min-mb` (default 1 MB) | **Ignored**, not listed in the detail table; still counted in the footer as "N records / X MB ignored" |
 | Above `--highlight-mb` (default 50 MB) | **Highlighted**: red row background, red left border, a `High` badge, plus a one-click "Only > 50 MB" filter |
-| A day over `--highlight-day-mb` (default 600 MB) | **Flagged** in the daily chart: ⚑ after the day, and a red bar; the daily summary table tags it too. This is a rule about the day, separate from the per-record one above, so a day can be flagged without holding any single large record. Set `--highlight-day-mb 0` to turn it off |
+| A day over `--highlight-day-mb` (default 600 MB) | **Flagged** in the daily chart: ⚑ after the day, and a red bar; the month header counts it. This is a rule about the day, separate from the per-record one above, so a day can be flagged without holding any single large record. Set `--highlight-day-mb 0` to turn it off |
 | Boundaries | Exactly 1 MB is kept; exactly 50 MB is not highlighted, and exactly 600 MB in a day is not flagged (strictly greater only). The daily total counts the records that survived the ignore threshold |
 | Data only | Rows whose `Type` contains `Data` or whose `Number` is `Internet`; calls and SMS/MMS are counted but excluded from the MB totals |
 | Duplicates | Rows with the same date, time, type, country, number and value are treated as duplicates and dropped (useful when merging several queries) |
@@ -209,12 +209,14 @@ the rounding of the displayed values.
 - Header with the generation time (Australia/Sydney), the source URL and the MB definition used
 - Language switch (Chinese / English, Chinese by default)
 - One card per phone number: total usage after cleanup, high-usage count / total / share, ignored count, largest and average record
-- Daily usage bar chart (a ⚑ flag marks days that top 600 MB in total)
+- Daily usage bar chart, grouped by month (every group starts closed; its header
+  carries the month total, a bar against the busiest month, the day count and the
+  daily average). A ⚑ flag marks days that top 600 MB in total
 - Cumulative usage line chart with the current average rate projected forward to
   `--project-until` (the plan expiry by default), plus a "Projected by" column in
   the all-accounts overview table, so you can see where each number is heading
-- Daily usage rows: clicking a day unfolds its records in place (click again to
-  close) —
+- Daily usage rows: open a month, then click a day to unfold its records in place
+  (click again to close) —
   date, time, type, country, usage, distribution, share, status — with the "all /
   only > 50 MB" filter kept per day. There is no separate fixed table below the
   chart any more, because it sat hundreds of rows away from the bar being pointed
