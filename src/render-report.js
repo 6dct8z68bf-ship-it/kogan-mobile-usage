@@ -200,6 +200,21 @@ const SCRIPT = `
     });
   });
 
+  /*
+   * Months start closed: a six month report is a handful of header lines, each
+   * already showing its month's total, instead of several screens of bars. The
+   * header is a button, so Enter and Space work as they do on the day rows.
+   */
+  document.querySelectorAll('.chart .month').forEach(function (month) {
+    var head = month.querySelector('.month-head');
+    if (!head) return;
+    head.addEventListener('click', function () {
+      var open = !month.classList.contains('is-open');
+      month.classList.toggle('is-open', open);
+      head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+
   bars.forEach(function (bar) {
     var day = bar.closest('.day');
     var rows = day ? Array.prototype.slice.call(day.querySelectorAll('tr[data-kind="row"]')) : [];
@@ -353,6 +368,65 @@ ${body}
  * them hundreds of rows away from the bar being pointed at, which made "hover a
  * day to see its records" impossible to read.
  */
+/**
+ * Group the days into months, oldest first, keeping the order the flat chart used.
+ *
+ * A six month report is one bar per day, so the list alone is several screens.
+ * Grouping does not change a single row inside a month; it only gives the report
+ * something to collapse, and a place to put the totals that a closed group would
+ * otherwise hide.
+ */
+function groupByMonth(days) {
+  const groups = [];
+  const sorted = days.slice().sort((a, b) => (a.dateIso < b.dateIso ? -1 : 1));
+  for (const day of sorted) {
+    const key = String(day.dateIso || '').slice(0, 7);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.days.push(day);
+    else groups.push({ key, days: [day] });
+  }
+  return groups;
+}
+
+/**
+ * One month of the daily chart: a header with the month's totals, then the days.
+ *
+ * Every month starts closed, so the whole window reads as a handful of lines.
+ * The header therefore has to carry what the closed group hides: the total, that
+ * total against the busiest month, the day count and the daily average, which is
+ * the summary a separate table used to provide.
+ */
+function renderMonth(analysis, group, rowsByDay, maxDayMb, maxMonthMb) {
+  const id = `${analysis.scope || 'account'}-month-${group.key}`;
+  const totalMb = group.days.reduce((sum, day) => sum + day.mb, 0);
+  const avgMb = group.days.length ? totalMb / group.days.length : 0;
+  const heavy = group.days.filter((day) => day.heavy).length;
+  const width = maxMonthMb > 0 ? Math.max(2, (totalMb / maxMonthMb) * 100) : 0;
+  const [year, month] = group.key.split('-');
+
+  const label = bi(`${year} 年 ${Number(month)} 月`, group.key);
+  const meta = bi(
+    `${fmtInt(group.days.length)} 天 · 均 ${fmtMb(avgMb)}/天`,
+    `${fmtInt(group.days.length)} day${group.days.length === 1 ? '' : 's'} · avg ${fmtMb(avgMb)}/day`
+  );
+  const days = group.days
+    .map((day) => renderDay(analysis, day, rowsByDay.get(day.dateIso) || [], maxDayMb))
+    .join('\n');
+
+  return `        <div class="month" data-month="${esc(group.key)}">
+          <button type="button" class="month-head" aria-expanded="false" aria-controls="${esc(id)}">
+            <span class="month-chevron" aria-hidden="true"></span>
+            <span class="month-name">${label}</span>
+            <span class="month-total">${esc(fmtMb(totalMb))}</span>
+            <span class="month-track"><span class="month-bar" style="width:${width.toFixed(2)}%"></span></span>
+            <span class="month-meta">${meta}${heavy ? ` <em>⚑ ${heavy}</em>` : ''}</span>
+          </button>
+          <div class="month-body" id="${esc(id)}">
+${days}
+          </div>
+        </div>`;
+}
+
 function renderDailyUsage(analysis) {
   const days = analysis.days;
   if (!days.length) {
@@ -365,11 +439,13 @@ function renderDailyUsage(analysis) {
     byDay.get(row.dateIso).push(row);
   }
 
+  // Bars stay scaled against the busiest day of the whole report, not of their
+  // month, so two months can still be compared while both are open.
   const max = Math.max(...days.map((d) => d.mb), 0) || 1;
-  const blocks = days
-    .slice()
-    .sort((a, b) => (a.dateIso < b.dateIso ? -1 : 1))
-    .map((day) => renderDay(analysis, day, byDay.get(day.dateIso) || [], max))
+  const groups = groupByMonth(days);
+  const maxMonthMb = Math.max(...groups.map((g) => g.days.reduce((sum, d) => sum + d.mb, 0)), 0) || 1;
+  const blocks = groups
+    .map((group) => renderMonth(analysis, group, byDay, max, maxMonthMb))
     .join('\n');
 
   const note =
@@ -685,8 +761,8 @@ function renderAccountSection(analysis, index, labelOptions, hideNames) {
   )}accounts.koganmobile.com.au/service/usage</p>
 ${renderSummaryCards(analysis)}
       <h3 class="block-title">${bi('每日用量', 'Daily usage')}<span class="block-hint">${bi(
-        '點選日期看當日明細（再點一次收起）',
-        'Click a day to see its records (click again to close)'
+        '展開月份，再點日期看當日明細（再點一次收起）',
+        'Open a month, then click a day for its records (click again to close)'
       )}</span></h3>
 ${renderDailyUsage(analysis)}
       <h3 class="block-title">${bi('累積用量與投射', 'Cumulative usage and projection')}</h3>
@@ -868,4 +944,4 @@ ${SCRIPT}
 `;
 }
 
-module.exports = { renderReport, esc, bi, fmtMb, fmtInt, periodLabel, typeLabel };
+module.exports = { renderReport, esc, bi, fmtMb, fmtInt, periodLabel, typeLabel, groupByMonth };

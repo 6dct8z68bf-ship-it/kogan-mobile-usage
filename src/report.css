@@ -138,6 +138,44 @@ h3.block-title::before { content: ""; width: 4px; height: 15px; border-radius: 2
 
 /* Each day's records unfold right under its bar, on click only (and close on the
    next click), so a mouse and a finger behave the same way. */
+/* A six month report is one bar per day, so the days are grouped by month and
+   every month starts closed. The header keeps the totals visible while closed:
+   the month total, that total against the busiest month, and the day count and
+   average a separate summary table used to provide. */
+.month + .month { border-top: 1px solid var(--line); }
+.month-head {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 5px 4px; margin: 0 -4px; border: 0; border-radius: 6px;
+  background: none; font: inherit; font-size: 13px; color: inherit;
+  text-align: left; cursor: pointer;
+}
+.month-head:hover { background: #f1f3f6; }
+.month-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.month-chevron {
+  flex: none; width: 0; height: 0;
+  border-left: 5px solid #6b7280; border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+  transition: transform .12s ease;
+}
+.month.is-open .month-chevron { transform: rotate(90deg); }
+.month-name { font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.month-total { min-width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
+.month-track { flex: 1 1 80px; min-width: 60px; height: 8px; border-radius: 4px; background: #eceef2; overflow: hidden; }
+.month-bar { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #4b5563, #6b7280); }
+.month-meta { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.month-meta em { color: var(--high-line); font-style: normal; }
+.month-body {
+  display: none; flex-direction: column; gap: 6px;
+  margin: 4px 0 6px 14px; padding-left: 10px; border-left: 2px solid var(--line);
+}
+.month.is-open > .month-body,
+.no-js .month-body { display: flex; }
+@media (max-width: 720px) {
+  .month-head { flex-wrap: wrap; }
+  .month-track { order: 4; flex-basis: 100%; }
+  .month-meta { margin-left: auto; }
+  .month-body { margin-left: 0; padding-left: 8px; }
+}
+
 .chart-row { cursor: pointer; border-radius: 6px; padding: 2px 4px; margin: 0 -4px; }
 .chart-row:hover, .day.is-open > .chart-row { background: #f1f3f6; }
 .chart-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
